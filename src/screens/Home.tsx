@@ -7,6 +7,9 @@ import {Drawer} from "@mui/material";
 import {useGetSnippets} from "../utils/queries.tsx";
 import {usePaginationContext} from "../contexts/paginationContext.tsx";
 import useDebounce from "../hooks/useDebounce.ts";
+import Login from "../components/login/Login.tsx";
+import {useAuth0} from "@auth0/auth0-react";
+
 
 const HomeScreen = () => {
   const {id: paramsId} = useParams<{ id: string }>();
@@ -15,6 +18,7 @@ const HomeScreen = () => {
   const [snippetId, setSnippetId] = useState<string | null>(null)
   const {page, page_size, count, handleChangeCount} = usePaginationContext()
   const {data, isLoading} = useGetSnippets(page, page_size, snippetName)
+  const {isAuthenticated} = useAuth0()
 
   useEffect(() => {
     if (data?.count && data.count != count) {
@@ -43,15 +47,21 @@ const HomeScreen = () => {
     setSearchTerm(snippetName);
   };
 
-  return (
-      <>
-        <SnippetTable loading={isLoading} handleClickSnippet={setSnippetId} snippets={data?.snippets}
-                      handleSearchSnippet={handleSearchSnippet}/>
-        <Drawer open={!!snippetId} anchor={"right"} onClose={handleCloseModal}>
-          {snippetId && <SnippetDetail handleCloseModal={handleCloseModal} id={snippetId}/>}
-        </Drawer>
-      </>
-  )
+  if (isAuthenticated){
+      return(
+          <>
+              <SnippetTable loading={isLoading} handleClickSnippet={setSnippetId} snippets={data?.snippets}
+                            handleSearchSnippet={handleSearchSnippet}/>
+              <Drawer open={!!snippetId} anchor={"right"} onClose={handleCloseModal}>
+                  {snippetId && <SnippetDetail handleCloseModal={handleCloseModal} id={snippetId}/>}
+              </Drawer>
+          </>
+      )
+  } else {
+      return (
+        <Login/>
+      )
+  }
 }
 
 export default withNavbar(HomeScreen);
