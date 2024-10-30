@@ -3,11 +3,14 @@ import {highlight, languages} from "prismjs";
 import Editor from "react-simple-code-editor";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
 import {useState} from "react";
+import Login from "../components/login/Login.tsx";
+import {useAuth0} from "@auth0/auth0-react";
 
 export const SnippetExecution = () => {
   // Here you should provide all the logic to connect to your sockets.
   const [input, setInput] = useState<string>("")
   const [output, setOutput] = useState<string[]>([]);
+  const {isAuthenticated} = useAuth0();
 
   //TODO: get the output from the server
   const code = output.join("\n")
@@ -21,7 +24,7 @@ export const SnippetExecution = () => {
   };
 
     return (
-      <>
+      isAuthenticated ? <>
         <Bòx flex={1} overflow={"none"} minHeight={200} bgcolor={'black'} color={'white'} code={code}>
             <Editor
               value={code}
@@ -36,6 +39,6 @@ export const SnippetExecution = () => {
             />
         </Bòx>
         <OutlinedInput onKeyDown={handleEnter} value={input} onChange={e => setInput(e.target.value)} placeholder="Type here" fullWidth/>
-      </>
+      </> : <Login/>
     )
 }

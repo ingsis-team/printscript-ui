@@ -19,6 +19,8 @@ import {SnippetExecution} from "./SnippetExecution.tsx";
 import ReadMoreIcon from '@mui/icons-material/ReadMore';
 import {queryClient} from "../App.tsx";
 import {DeleteConfirmationModal} from "../components/snippet-detail/DeleteConfirmationModal.tsx";
+import Login from "../components/login/Login.tsx";
+import {useAuth0} from "@auth0/auth0-react";
 
 type SnippetDetailProps = {
   id: string;
@@ -49,6 +51,7 @@ const DownloadButton = ({snippet}: { snippet?: Snippet }) => {
 }
 
 export const SnippetDetail = (props: SnippetDetailProps) => {
+  const {isAuthenticated} = useAuth0();
   const {id, handleCloseModal} = props;
   const [code, setCode] = useState(
       ""
@@ -81,7 +84,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   }
 
   return (
-      <Box p={4} minWidth={'60vw'}>
+      isAuthenticated ? <Box p={4} minWidth={'60vw'}>
         <Box width={'100%'} p={2} display={'flex'} justifyContent={'flex-end'}>
           <CloseIcon style={{cursor: "pointer"}} onClick={handleCloseModal}/>
         </Box>
@@ -151,7 +154,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                            onShare={handleShareSnippet}/>
         <TestSnippetModal open={testModalOpened} onClose={() => setTestModalOpened(false)} snippetId={id}/>
         <DeleteConfirmationModal open={deleteConfirmationModalOpen} onClose={() => setDeleteConfirmationModalOpen(false)} id={snippet?.id ?? ""} setCloseDetails={handleCloseModal} />
-      </Box>
+      </Box> : <Login/>
   );
 }
 

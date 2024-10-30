@@ -12,13 +12,21 @@ import {useAuth0} from "@auth0/auth0-react";
 
 
 const HomeScreen = () => {
-  const {id: paramsId} = useParams<{ id: string }>();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [snippetName, setSnippetName] = useState('');
-  const [snippetId, setSnippetId] = useState<string | null>(null)
-  const {page, page_size, count, handleChangeCount} = usePaginationContext()
-  const {data, isLoading} = useGetSnippets(page, page_size, snippetName)
-  const {isAuthenticated} = useAuth0()
+    const {id: paramsId} = useParams<{ id: string }>();
+    const [searchTerm, setSearchTerm] = useState('');
+    const [snippetName, setSnippetName] = useState('');
+    const [snippetId, setSnippetId] = useState<string | null>(null)
+    const {page, page_size, count, handleChangeCount} = usePaginationContext()
+    const { data, isLoading } = useGetSnippets(page, page_size, snippetName);
+    const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently } = useAuth0()
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            getAccessTokenSilently()
+                .then((token) => {localStorage.setItem('token', token)})
+                .catch((error) => {console.error("Error al obtener el token:", error)})
+        }
+    }, [isAuthenticated]);
 
   useEffect(() => {
     if (data?.count && data.count != count) {
@@ -47,7 +55,9 @@ const HomeScreen = () => {
     setSearchTerm(snippetName);
   };
 
-  if (isAuthenticated){
+  if(authLoading){
+      return <div>Cargando...</div>
+  } else if (isAuthenticated){
       return(
           <>
               <SnippetTable loading={isLoading} handleClickSnippet={setSnippetId} snippets={data?.snippets}
