@@ -39,6 +39,14 @@ npm run dev
 
 This will start the Vite development server. You can now open your browser and navigate to http://localhost:5173/ to see the application running.
 
+## Build production version
+
+To use this UI in production you should use an optimized and static version, this command will generate this version in `dist` directory:  
+
+```bash
+npm run build
+```
+
 ## Cypress
 
 To start cypress, make sure that the UI is running and enter: 
@@ -46,6 +54,21 @@ To start cypress, make sure that the UI is running and enter:
 ```bash
 npm run cypress
 ```
+
+## Enable Auth0
+
+This application uses https://www.npmjs.com/package/@auth0/auth0-react library for Auth0 integration, to enable it you need to change:
+* Uncomment autologin in [App.tsx](src/App.tsx)
+* Uncomment token retrieval for operations [queries.tsx](src/utils/queries.tsx) 
+* Create a `.env` file with the required env vars:
+```
+VITE_AUTH0_DOMAIN=<domain>
+VITE_AUTH0_CLIENT_ID=<client_id>
+```
+
+If you get 401 loop when getting token:
+* Change application type in Auth0 to "Regular Web Application"
+* In Application Settings > Credentials > "Authentication Method" select "None" 
 
 ## Start working
 
@@ -62,7 +85,7 @@ npm run cypress
 ## Tasks
 
 - [ ] Integrate Auth0 UI and private routes
-- [ ] Integrate your endpoints to the UI
+- [ ] Integrate your endpoints to the UI (Create custom "SnippetOperations")
 - [ ] Dockerize
 - [ ] CI/CD
 - [ ] Sockets*
