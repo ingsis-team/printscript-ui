@@ -9,30 +9,30 @@ export type ComplianceEnum =
 
 
 export type CreateSnippet = {
-  name: string;
-  content: string;
-  language: string;
-  extension: string;
+    name: string;
+    content: string;
+    language: string;
+    extension: string;
 }
 
 export type CreateSnippetWithLang = CreateSnippet & { language: string }
 
 export type UpdateSnippet = {
-  content: string
+    content: string
 }
 
 export type Snippet = CreateSnippet & {
-  id: string
+    id: string
 } & SnippetStatus
 
 type SnippetStatus = {
-  compliance: ComplianceEnum;
-  author: string;
+    compliance: ComplianceEnum;
+    author: string;
 }
 export type PaginatedSnippets = Pagination & {
-  snippets: Snippet[]
+    content: Snippet[]
 }
 
 export const getFileLanguage = (fileTypes: FileType[], fileExt?: string) => {
-  return fileExt && fileTypes?.find(x => x.extension == fileExt)
+    return fileExt && fileTypes?.find(x => x.extension == fileExt)
 }
