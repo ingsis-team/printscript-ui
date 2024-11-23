@@ -12,7 +12,7 @@ const token = localStorage.getItem('token')
 const userId = localStorage.getItem('userId')
 
 //use localhost
-const url =  `${window.location.origin}/operations`
+const url =  `http://localhost:8050`
 const SNIPPET_URL = `${url}/snippets`
 const TEST_CASE_URL = `${url}/test-case`
 const RUN_URL = `${url}/run`
