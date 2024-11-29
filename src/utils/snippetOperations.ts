@@ -6,6 +6,9 @@ import {FileType} from "../types/FileType.ts";
 import {Rule} from "../types/Rule.ts";
 
 export interface SnippetOperations {
+
+    setToken(token: string): void
+
     listSnippetDescriptors(page: number,pageSize: number,snippetName?: string): Promise<PaginatedSnippets>
 
     createSnippet(createSnippet: CreateSnippet): Promise<Snippet>

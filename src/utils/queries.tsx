@@ -17,12 +17,11 @@ export const useSnippetsOperations = () => {
     useEffect(() => {
         getAccessTokenSilently()
             .then(token => {
-                snippetOperations.setToken(token)
-                console.log(token)
+                if (token) snippetOperations.setToken(token); // Ensure token is valid
+                console.log('Token set:', token);
             })
-            .catch(error => console.error(error));
-    });
-
+            .catch(error => console.error('Error fetching token:', error));
+    }, [getAccessTokenSilently]); // Add dependency array
 
     return snippetOperations
 }
@@ -75,12 +74,15 @@ export const useShareSnippet = () => {
 };
 
 
-export const useGetTestCases = () => {
-    const snippetOperations = useSnippetsOperations()
+export const useGetTestCases = (snippetId: string) => {
+    const snippetOperations = useSnippetsOperations();
 
-    return useQuery<TestCase[] | undefined, Error>(['testCases'], () => snippetOperations.getTestCases(), {});
+    return useQuery<TestCase[] | undefined, Error>(
+        ['testCases', snippetId],
+        () => snippetOperations.getTestCases(snippetId), // Pass snippetId
+        { enabled: !!snippetId } // Enable only when snippetId is provided
+    );
 };
-
 
 export const usePostTestCase = () => {
     const snippetOperations = useSnippetsOperations()
@@ -112,8 +114,6 @@ export const useTestSnippet = () => {
         (tc) => snippetOperations.testSnippet(tc)
     )
 }
-
-
 
 export const useGetFormatRules = () => {
     const snippetOperations = useSnippetsOperations()
@@ -165,7 +165,6 @@ export const useDeleteSnippet = ({onSuccess}: {onSuccess: () => void}) => {
         }
     );
 }
-
 
 export const useGetFileTypes = () => {
     const snippetOperations = useSnippetsOperations()

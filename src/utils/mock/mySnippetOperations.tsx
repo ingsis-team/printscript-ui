@@ -1,45 +1,54 @@
-import {SnippetOperations} from "../snippetOperations.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "../snippet.ts";
-import {FileType} from "../../types/FileType.ts";
-import {Rule} from "../../types/Rule.ts";
-import {TestCase} from "../../types/TestCase.ts";
-import {PaginatedUsers} from "../users.ts";
-import {TestCaseResult} from "../queries.tsx";
-import axios from "axios";
+import { SnippetOperations } from "../snippetOperations.ts";
+import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from "../snippet.ts";
+import { FileType } from "../../types/FileType.ts";
+import { Rule } from "../../types/Rule.ts";
+import { TestCase } from "../../types/TestCase.ts";
+import { PaginatedUsers } from "../users.ts";
+import { TestCaseResult } from "../queries.tsx";
+import api from "../api.ts";
+import {FakeSnippetStore} from "./fakeSnippetStore.ts"; // Centralized Axios instance
 
-//const DELAY: number = 1000;
-const token = localStorage.getItem('token')
-const userId = localStorage.getItem('userId')
+const DELAY: number = 1000;
 
-//use localhost
-const url =  `http://localhost:8050`
-const SNIPPET_URL = `${url}/snippets`
-const TEST_CASE_URL = `${url}/test-case`
-const RUN_URL = `${url}/run`
+export class MySnippetOperations implements SnippetOperations {
+    private token: string | null = null;
 
-export class MySnippetOperations implements SnippetOperations{
-    private token: string|null = null;
+    private readonly fakeStore = new FakeSnippetStore()
 
-    constructor() {
-        this.token = null;
+    setToken(token: string) {
+        this.token = token;
     }
 
-    setToken(token: string){
-        this.token = token;
+    async listSnippetDescriptors(
+        page: number,
+        pageSize: number,
+        snippetName?: string
+    ): Promise<PaginatedSnippets> {
+        try {
+            const response = await api.get("/snippets", {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+                params: {
+                    pageNumber: String(page),
+                    pageSize: String(pageSize),
+                    snippetName,
+                },
+            });
+            return response.data as PaginatedSnippets;
+        } catch (error) {
+            throw new Error(`Error fetching snippet descriptors: ${error}`);
+        }
     }
 
     async createSnippet(createSnippet: CreateSnippet): Promise<Snippet> {
         try {
-            const response = await axios.post(
-                SNIPPET_URL, {
-                    ...createSnippet,
-                    authorId: userId,
-                    compliance: 'pending'
-                }, {
+            const response = await api.post(
+                "/snippets",
+                { ...createSnippet, compliance: "pending" },
+                {
                     headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
+                        Authorization: `Bearer ${this.token}`,
                     },
                 }
             );
@@ -49,314 +58,29 @@ export class MySnippetOperations implements SnippetOperations{
         }
     }
 
-   async  deleteSnippet(id: string): Promise<string> {
-       try {
-           const response = await axios.delete(
-               `${SNIPPET_URL}`, {
-                   headers: {
-                       'Authorization': `Bearer ${token}`,
-                       'Content-Type': 'application/json',
-                       'ngrok-skip-browser-warning': '69420'
-                   },
-                   params: {
-                       snippetId: id,
-                       userId
-                   }},
-           );
-           return response.data as string;
-       } catch (error) {
-           throw new Error(`Error deleting snippet: ${error}`);
-       }
-    }
-
-    async formatSnippet(snippet: string): Promise<string> {
-        try {
-            const response = await axios.put(
-                `${RUN_URL}/format`, {
-                    snippet,
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        userId
-                    }
-                });
-            return response.data as string;
-        } catch (error) {
-            throw new Error(`Error formatting snippet: ${error}`);
-        }
-    }
-
-    getFileTypes(): Promise<FileType[]> {
-        return Promise.resolve([]);
-    }
-
-    async getFormatRules(): Promise<Rule[]> {
-        try {
-            const response = await axios.get(
-                `${RUN_URL}/format-rules`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        userId
-                    }
-                });
-            return response.data;
-        } catch (error) {
-            throw new Error(`Error fetching format rules: ${error}`);
-        }
-    }
-
-    async getLintingRules(): Promise<Rule[]> {
-        try {
-            const response = await axios.get(
-                `${RUN_URL}/lint-rules`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        userId
-                    }
-                });
-            return response.data;
-        } catch (error) {
-            throw new Error(`Error fetching linting rules: ${error}`);
-        }
-    }
-
     async getSnippetById(id: string): Promise<Snippet | undefined> {
         try {
-            const response = await axios.get(
-                `${SNIPPET_URL}/byId`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        snippetId: id,
-                        userId
-                    }
-                }
-            );
+            const response = await api.get(`/snippets/byId`, {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+                params: { snippetId: id },
+            });
             return response.data as Snippet;
         } catch (error) {
             throw new Error(`Error fetching snippet: ${error}`);
         }
     }
 
-    async getTestCases(snippetId: string): Promise<TestCase[]> {
-        try {
-            const response = await axios.get(
-                `${TEST_CASE_URL}`, {
-                    params: {
-                        snippetId
-                    },
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                });
-            return response.data;
-        } catch (error) {
-            console.log(error)
-            throw new Error(`Error fetching test cases: ${error}`);
-        }
-    }
-
-    async getUserFriends(name?: string, page?: number, pageSize?: number): Promise<PaginatedUsers> {
-        try {
-            const response = await axios.get(
-                `${SNIPPET_URL}/users`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        pageNumber: page,
-                        pageSize
-                    }
-                })
-            return response.data;
-        } catch (error) {
-            throw new Error(`Error fetching friends: ${error}`);
-        }
-    }
-
-    async listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
-        try {
-            const response = await axios.get(
-                SNIPPET_URL, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        userId,
-                        pageNumber: String(page),
-                        pageSize: String(pageSize),
-                    },
-                });
-            return response.data as PaginatedSnippets;
-        } catch (error) {
-            throw new Error(`Error fetching snippets: ${error}`);
-        }
-    }
-
-    async modifyFormatRule(newRules: Rule[]): Promise<Rule[]> {
-        try {
-            const response = await axios.put(
-                `${RUN_URL}/format-rules`, {
-                    rules: newRules
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        userId
-                    }
-                });
-            return response.data as Rule[];
-        } catch (error) {
-            throw new Error(`Error modifying format rules: ${error}`);
-        }
-    }
-
-    async modifyLintingRule(newRules: Rule[]): Promise<Rule[]> {
-        try {
-            const response = await axios.put(
-                `${RUN_URL}/lint-rules`, {
-                    rules: newRules
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        userId
-                    }
-                });
-            return response.data as Rule[];
-        } catch (error) {
-            throw new Error(`Error modifying linting rules: ${error}`);
-        }
-    }
-
-
-    async postTestCase(testCase: Partial<TestCase>): Promise<TestCase> {
-        try {
-            const body = {
-                ...testCase,
-                id: parseInt(String(testCase.id))
-            }
-            const response = await axios.post(
-                `${TEST_CASE_URL}`, body,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                });
-            return response.data as TestCase;
-        } catch (error) {
-            throw new Error(`Error posting test case: ${error}`);
-        }
-    }
-
-    async removeTestCase(id: string): Promise<string> {
-        try {
-            const response = await axios.delete(
-                `${TEST_CASE_URL}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        testCaseId: parseInt(id)
-                    }
-                });
-            return response.data as string;
-        } catch (error) {
-            throw new Error(`Error removing test case: ${error}`);
-        }
-    }
-
-    async shareSnippet(snippetId: string, userId: string): Promise<Snippet> {
-        try {
-            const response = await axios.post(
-                `${SNIPPET_URL}/share`, {
-                    snippetId,
-                    userId
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        userId
-                    }
-                });
-            return response.data as Snippet;
-        } catch (error) {
-            throw new Error(`Error sharing snippet: ${error}`);
-        }
-    }
-
-    async testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult> {
-        try {
-            const response = await axios.post(
-                `${TEST_CASE_URL}/run`, {},{
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
-                    },
-                    params: {
-                        testCaseId: parseInt(testCase.id as string),
-                        testCase
-                    },
-                });
-            return response.data as TestCaseResult;
-        } catch (e) {
-            throw new Error(`Error testing snippet: ${e}`);
-        }
-    }
-
     async updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet> {
         try {
-            const response = await axios.put(
-                `${SNIPPET_URL}`, {
-                    id,
-                    ...updateSnippet,
-                }, {
+            const response = await api.put(
+                "/snippets",
+                { id, ...updateSnippet },
+                {
                     headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420'
+                        Authorization: `Bearer ${this.token}`,
                     },
-                    params: {
-                        userId
-                    }
                 }
             );
             return response.data as Snippet;
@@ -365,4 +89,197 @@ export class MySnippetOperations implements SnippetOperations{
         }
     }
 
+    async getUserFriends(
+        name?: string,
+        page?: number,
+        pageSize?: number
+    ): Promise<PaginatedUsers> {
+        try {
+            const response = await api.get("/snippets/users", {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+                params: {
+                    name,
+                    pageNumber: page,
+                    pageSize,
+                },
+            });
+            return response.data as PaginatedUsers;
+        } catch (error) {
+            throw new Error(`Error fetching user friends: ${error}`);
+        }
+    }
+
+    async shareSnippet(snippetId: string, userId: string): Promise<Snippet> {
+        try {
+            const response = await api.post(
+                "/snippets/share",
+                { snippetId, userId },
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.token}`,
+                    },
+                }
+            );
+            return response.data as Snippet;
+        } catch (error) {
+            throw new Error(`Error sharing snippet: ${error}`);
+        }
+    }
+
+    async getFormatRules(): Promise<Rule[]> {
+        try {
+            const response = await api.get("/run/format-rules", {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+            });
+            return response.data as Rule[];
+        } catch (error) {
+            throw new Error(`Error fetching format rules: ${error}`);
+        }
+    }
+
+    async getLintingRules(): Promise<Rule[]> {
+        try {
+            const response = await api.get("/run/lint-rules", {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+            });
+            return response.data as Rule[];
+        } catch (error) {
+            throw new Error(`Error fetching linting rules: ${error}`);
+        }
+    }
+
+    async getTestCases(snippetId: string): Promise<TestCase[]> {
+        try {
+            const response = await api.get("/test-case", {
+                params: { snippetId },
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+            });
+            return response.data as TestCase[];
+        } catch (error) {
+            throw new Error(`Error fetching test cases: ${error}`);
+        }
+    }
+
+    async formatSnippet(snippet: string): Promise<string> {
+        try {
+            const response = await api.put(
+                "/run/format",
+                { snippet },
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.token}`,
+                    },
+                }
+            );
+            return response.data as string;
+        } catch (error) {
+            throw new Error(`Error formatting snippet: ${error}`);
+        }
+    }
+
+    async postTestCase(testCase: Partial<TestCase>): Promise<TestCase> {
+        try {
+            const response = await api.post("/test-case", testCase, {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+            });
+            return response.data as TestCase;
+        } catch (error) {
+            throw new Error(`Error posting test case: ${error}`);
+        }
+    }
+
+    async removeTestCase(id: string): Promise<string> {
+        try {
+            const response = await api.delete("/test-case", {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+                params: { testCaseId: id },
+            });
+            return response.data as string;
+        } catch (error) {
+            throw new Error(`Error removing test case: ${error}`);
+        }
+    }
+
+    async deleteSnippet(id: string): Promise<string> {
+        try {
+            const response = await api.delete("/snippets", {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+                params: { snippetId: id },
+            });
+            return response.data as string;
+        } catch (error) {
+            throw new Error(`Error deleting snippet: ${error}`);
+        }
+    }
+
+    async testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult> {
+        try {
+            const response = await api.post(
+                "/test-case/run",
+                testCase,
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.token}`,
+                    },
+                }
+            );
+            return response.data as TestCaseResult;
+        } catch (error) {
+            throw new Error(`Error testing snippet: ${error}`);
+        }
+    }
+
+    getFileTypes(): Promise<FileType[]> {
+        return new Promise(resolve => {
+            setTimeout(() => resolve(this.fakeStore.getFileTypes()), DELAY)
+        })
+    }
+
+    async modifyFormatRule(newRules: Rule[]): Promise<Rule[]> {
+        try {
+            const response = await api.put(
+                "/run/format-rules",
+                { rules: newRules },
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.token}`,
+                    },
+                }
+            );
+            return response.data as Rule[];
+        } catch (error) {
+            throw new Error(`Error modifying format rules: ${error}`);
+        }
+    }
+
+    async modifyLintingRule(newRules: Rule[]): Promise<Rule[]> {
+        try {
+            const response = await api.put(
+                "/run/lint-rules",
+                { rules: newRules },
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.token}`,
+                    },
+                }
+            );
+            return response.data as Rule[];
+        } catch (error) {
+            throw new Error(`Error modifying linting rules: ${error}`);
+        }
+    }
 }
