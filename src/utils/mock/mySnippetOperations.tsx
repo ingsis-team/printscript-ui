@@ -24,6 +24,13 @@ export class MySnippetOperations implements SnippetOperations {
         pageSize: number,
         snippetName?: string
     ): Promise<PaginatedSnippets> {
+        // if no token, delay for 1 second
+
+        if (!this.token) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+
         try {
             const response = await api.get("/snippets", {
                 headers: {
@@ -42,10 +49,12 @@ export class MySnippetOperations implements SnippetOperations {
     }
 
     async createSnippet(createSnippet: CreateSnippet): Promise<Snippet> {
+
+        console.log(createSnippet)
         try {
             const response = await api.post(
                 "/snippets",
-                { ...createSnippet, compliance: "pending" },
+                { ...createSnippet, compliance: "pending"  },
                 {
                     headers: {
                         Authorization: `Bearer ${this.token}`,

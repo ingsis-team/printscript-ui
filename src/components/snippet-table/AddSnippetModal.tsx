@@ -37,6 +37,7 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     const {data: fileTypes} = useGetFileTypes();
 
     const handleCreateSnippet = async () => {
+        console.log(code)
         const newSnippet: CreateSnippet = {
             name: snippetName,
             content: code,
