@@ -8,7 +8,7 @@ import { TestCaseResult } from "../queries.tsx";
 import api from "../api.ts";
 import {FakeSnippetStore} from "./fakeSnippetStore.ts"; // Centralized Axios instance
 
-const DELAY: number = 1000;
+const DELAY: number = 1000
 
 export class MySnippetOperations implements SnippetOperations {
     private token: string | null = null;
