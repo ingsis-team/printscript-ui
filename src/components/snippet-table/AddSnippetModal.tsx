@@ -23,9 +23,10 @@ import {ModalWrapper} from "../common/ModalWrapper.tsx";
 import {useCreateSnippet, useGetFileTypes} from "../../utils/queries.tsx";
 import {queryClient} from "../../App.tsx";
 
-export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
+export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
     open: boolean,
     onClose: () => void,
+    username: string,
     defaultSnippet?: CreateSnippetWithLang
 }) => {
     const [language, setLanguage] = useState(defaultSnippet?.language ?? "printscript");
@@ -42,7 +43,8 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
             name: snippetName,
             content: code,
             language: language,
-            extension: fileTypes?.find((f) => f.language === language)?.extension ?? "prs"
+            extension: fileTypes?.find((f) => f.language === language)?.extension ?? "prs",
+            author: username
         }
         await createSnippet(newSnippet);
         onClose();

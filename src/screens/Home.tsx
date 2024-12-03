@@ -46,10 +46,13 @@ const HomeScreen = () => {
         setSearchTerm(snippetName);
     };
 
+    const username = localStorage.getItem("username")
+
     return (
         <>
             {isAuthenticated ?
                 <>
+                    <h1>Hola, {username}!</h1>
                     <SnippetTable loading={isLoading} handleClickSnippet={setSnippetId} snippets={data?.content}
                                   handleSearchSnippet={handleSearchSnippet}/>
                     <Drawer open={!!snippetId} anchor={"right"} onClose={handleCloseModal}>

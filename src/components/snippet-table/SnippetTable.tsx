@@ -37,6 +37,8 @@ export const SnippetTable = (props: SnippetTableProps) => {
 
   const popoverRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const username = localStorage.getItem("username") as string;
+
   const {page, page_size: pageSize, count, handleChangePageSize, handleGoToPage} = usePaginationContext()
   const {createSnackbar} = useSnackbarContext()
   const {data: fileTypes} = useGetFileTypes();
@@ -125,7 +127,7 @@ export const SnippetTable = (props: SnippetTableProps) => {
                            onPageChange={(_, page) => handleGoToPage(page)}
                            onRowsPerPageChange={e => handleChangePageSize(Number(e.target.value))}/>
         </Table>
-        <AddSnippetModal defaultSnippet={snippet} open={addModalOpened}
+        <AddSnippetModal defaultSnippet={snippet} open={addModalOpened} username={username}
                          onClose={() => setAddModalOpened(false)}/>
         <Menu anchorEl={popoverRef.current} open={popoverMenuOpened} onClick={handleClickMenu}>
           <MenuItem onClick={() => setAddModalOpened(true)}>Create snippet</MenuItem>
