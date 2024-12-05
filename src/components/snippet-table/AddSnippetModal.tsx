@@ -13,7 +13,6 @@ import {
 import {highlight, languages} from "prismjs";
 import {useEffect, useState} from "react";
 import Editor from "react-simple-code-editor";
-
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism-okaidia.css";
@@ -22,6 +21,7 @@ import {CreateSnippet, CreateSnippetWithLang} from "../../utils/snippet.ts";
 import {ModalWrapper} from "../common/ModalWrapper.tsx";
 import {useCreateSnippet, useGetFileTypes} from "../../utils/queries.tsx";
 import {queryClient} from "../../App.tsx";
+import Swal from "sweetalert2";
 
 export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
     open: boolean,
@@ -38,16 +38,28 @@ export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
     const {data: fileTypes} = useGetFileTypes();
 
     const handleCreateSnippet = async () => {
-        console.log(code)
+        console.log(code);
         const newSnippet: CreateSnippet = {
             name: snippetName,
             content: code,
             language: language,
             extension: fileTypes?.find((f) => f.language === language)?.extension ?? "prs",
             author: username
+        };
+
+        try {
+            await createSnippet(newSnippet); // Intenta crear el snippet
+            onClose(); // Cierra el modal si tiene éxito
+        } catch (error) {
+            console.error("Error al crear el snippet:", error);
+            onClose();
+            // Muestra alerta en caso de error
+            Swal.fire({
+                title: "Error al crear snippet",
+                text: "La sintaxis es inválida o ocurrió un error.",
+                icon: "error"
+            });
         }
-        await createSnippet(newSnippet);
-        onClose();
     }
 
     useEffect(() => {
