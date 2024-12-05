@@ -39,12 +39,13 @@ export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
 
     const handleCreateSnippet = async () => {
         console.log(code);
+        const nickname = localStorage.getItem("username")
         const newSnippet: CreateSnippet = {
             name: snippetName,
             content: code,
             language: language,
             extension: fileTypes?.find((f) => f.language === language)?.extension ?? "prs",
-            author: username
+            username: nickname,
         };
 
         try {

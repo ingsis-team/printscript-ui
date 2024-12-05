@@ -52,9 +52,10 @@ export class MySnippetOperations implements SnippetOperations {
 
         console.log(createSnippet)
         try {
+            const username = localStorage.getItem("username")
             const response = await api.post(
                 "/snippets",
-                { ...createSnippet, compliance: "pending"  },
+                { ...createSnippet, author: username, compliance: "pending"  },
                 {
                     headers: {
                         Authorization: `Bearer ${this.token}`,

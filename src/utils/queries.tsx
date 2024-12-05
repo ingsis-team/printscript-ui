@@ -7,8 +7,8 @@ import {FileType} from "../types/FileType.ts";
 import {Rule} from "../types/Rule.ts";
 import {MySnippetOperations} from "./mock/mySnippetOperations.tsx";
 import {useAuth0} from "@auth0/auth0-react";
-import {useEffect} from "react";
-
+import {useEffect, useState} from "react";
+S
 
 export const useSnippetsOperations = () => {
     const {getAccessTokenSilently} = useAuth0()
@@ -46,15 +46,27 @@ export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutat
     return useMutation<Snippet, Error, CreateSnippet>(createSnippet => snippetOperations.createSnippet(createSnippet), {onSuccess});
 };
 
-export const useUpdateSnippetById = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<Snippet, Error, {
-    id: string;
-    updateSnippet: UpdateSnippet
-}> => {
-    const snippetOperations = useSnippetsOperations()
+export const useUpdateSnippetById = ({
+                                         onSuccess,
+                                         onError,
+                                     }: {
+    onSuccess: () => void;
+    onError?: (error: Error) => void;
+}): UseMutationResult<
+    Snippet,
+    Error,
+    {
+        id: string;
+        updateSnippet: UpdateSnippet;
+    }
+> => {
+    const snippetOperations = useSnippetsOperations();
 
     return useMutation<Snippet, Error, { id: string; updateSnippet: UpdateSnippet }>(
-        ({id, updateSnippet}) => snippetOperations.updateSnippetById(id, updateSnippet),{
+        ({ id, updateSnippet }) => snippetOperations.updateSnippetById(id, updateSnippet),
+        {
             onSuccess,
+            onError,
         }
     );
 };
@@ -147,7 +159,7 @@ export const useModifyLintingRules = ({onSuccess}: {onSuccess: () => void}) => {
     );
 }
 
-export const useFormatSnippet = () => {
+export const useFormatSnippet = (p: any, p1: any) => {
     const snippetOperations = useSnippetsOperations()
 
     return useMutation<string, Error, string>(
@@ -171,3 +183,4 @@ export const useGetFileTypes = () => {
 
     return useQuery<FileType[], Error>('fileTypes', () => snippetOperations.getFileTypes());
 }
+

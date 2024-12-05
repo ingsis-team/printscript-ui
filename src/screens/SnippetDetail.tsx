@@ -19,6 +19,7 @@ import {SnippetExecution} from "./SnippetExecution.tsx";
 import ReadMoreIcon from '@mui/icons-material/ReadMore';
 import {queryClient} from "../App.tsx";
 import {DeleteConfirmationModal} from "../components/snippet-detail/DeleteConfirmationModal.tsx";
+import Swal from "sweetalert2";
 
 type SnippetDetailProps = {
     id: string;
@@ -61,7 +62,19 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     const {data: snippet, isLoading} = useGetSnippetById(id);
     const {mutate: shareSnippet, isLoading: loadingShare} = useShareSnippet()
     const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet(snippet?.id ?? "", snippet?.language ?? "")
-    const {mutate: updateSnippet, isLoading: isUpdateSnippetLoading} = useUpdateSnippetById({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
+    const {mutate: updateSnippet, isLoading: isUpdateSnippetLoading} = useUpdateSnippetById({
+        onSuccess: () => {
+            queryClient.invalidateQueries(['snippet', id]);
+        },
+        onError: () => {
+            handleCloseModal()
+            Swal.fire({
+                title: "Error al actualizar",
+                text: "Ocurrió un error al intentar actualizar el snippet. Por favor, revisa la sintaxis.",
+                icon: "error",
+            });
+        }
+    })
 
     useEffect(() => {
         if (snippet) {
