@@ -23,7 +23,7 @@ import {ModalWrapper} from "../common/ModalWrapper.tsx";
 import {useCreateSnippet, useGetFileTypes} from "../../utils/queries.tsx";
 import {queryClient} from "../../App.tsx";
 
-export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
+export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     open: boolean,
     onClose: () => void,
     username: string,
@@ -31,51 +31,47 @@ export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
 }) => {
     const [language, setLanguage] = useState(defaultSnippet?.language ?? "printscript");
     const [code, setCode] = useState(defaultSnippet?.content ?? "");
-    const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "")
+    const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "");
     const {mutateAsync: createSnippet, isLoading: loadingSnippet} = useCreateSnippet({
         onSuccess: () => queryClient.invalidateQueries('listSnippets')
-    })
+    });
     const {data: fileTypes} = useGetFileTypes();
 
     const handleCreateSnippet = async () => {
-        console.log(code)
         const newSnippet: CreateSnippet = {
             name: snippetName,
             content: code,
             language: language,
             extension: fileTypes?.find((f) => f.language === language)?.extension ?? "prs",
-            author: username
-        }
+        };
         await createSnippet(newSnippet);
         onClose();
-    }
+    };
 
     useEffect(() => {
         if (defaultSnippet) {
-            setCode(defaultSnippet?.content)
-            setLanguage(defaultSnippet?.language)
-            setSnippetName(defaultSnippet?.name)
+            setCode(defaultSnippet?.content);
+            setLanguage(defaultSnippet?.language);
+            setSnippetName(defaultSnippet?.name);
         }
     }, [defaultSnippet]);
 
     return (
         <ModalWrapper open={open} onClose={onClose}>
-            {
-                <Box sx={{display: 'flex', flexDirection: "row", justifyContent: "space-between"}}>
-                    <Typography id="modal-modal-title" variant="h5" component="h2"
-                                sx={{display: 'flex', alignItems: 'center'}}>
-                        Add Snippet
-                    </Typography>
-                    <Button disabled={!snippetName || !code || !language || loadingSnippet} variant="contained"
-                            disableRipple
-                            sx={{boxShadow: 0}} onClick={handleCreateSnippet}>
-                        <Box pr={1} display={"flex"} alignItems={"center"} justifyContent={"center"}>
-                            {loadingSnippet ? <CircularProgress size={24}/> : <Save/>}
-                        </Box>
-                        Save Snippet
-                    </Button>
-                </Box>
-            }
+            <Box sx={{ display: 'flex', flexDirection: "row", justifyContent: "space-between" }}>
+                <Typography id="modal-modal-title" variant="h5" component="h2"
+                            sx={{ display: 'flex', alignItems: 'center' }}>
+                    Add Snippet
+                </Typography>
+                <Button disabled={!snippetName || !code || !language || loadingSnippet} variant="contained"
+                        disableRipple
+                        sx={{ boxShadow: 0 }} onClick={handleCreateSnippet}>
+                    <Box pr={1} display={"flex"} alignItems={"center"} justifyContent={"center"}>
+                        {loadingSnippet ? <CircularProgress size={24}/> : <Save/>}
+                    </Box>
+                    Save Snippet
+                </Button>
+            </Box>
             <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -83,7 +79,7 @@ export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
             }}>
                 <InputLabel htmlFor="name">Name</InputLabel>
                 <Input onChange={e => setSnippetName(e.target.value)} value={snippetName} id="name"
-                       sx={{width: '50%'}}/>
+                       sx={{ width: '50%' }}/>
             </Box>
             <Box sx={{
                 display: 'flex',
@@ -95,9 +91,8 @@ export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
                     labelId="demo-simple-select-label"
                     id="demo-simple-select"
                     value={language}
-                    label="Age"
                     onChange={(e: SelectChangeEvent<string>) => setLanguage(e.target.value)}
-                    sx={{width: '50%'}}
+                    sx={{ width: '50%' }}
                 >
                     {
                         fileTypes?.map(x => (
@@ -129,6 +124,5 @@ export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
                 />
             </Box>
         </ModalWrapper>
-    )
-}
-
+    );
+};

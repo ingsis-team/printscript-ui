@@ -147,6 +147,7 @@ export const useModifyLintingRules = ({onSuccess}: {onSuccess: () => void}) => {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const useFormatSnippet = () => {
     const snippetOperations = useSnippetsOperations()
 

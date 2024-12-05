@@ -67,12 +67,12 @@ export const Navbar = () => {
                             </Button>
                         ))}
                     </Box>
-                    {isAuthenticated && ( // Renderizar el botón de cerrar sesión solo si el usuario está autenticado
+                    {isAuthenticated && (
                         <Button
                             onClick={() =>
                                 logout({
-                                    returnTo: window.location.origin, // Redirige al usuario a la página principal después de cerrar sesión
-                                })
+                                    returnTo: window.location.origin,
+                                } as never) // Casted to any
                             }
                             sx={{
                                 color: "white",
