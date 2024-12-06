@@ -7,8 +7,7 @@ import {FileType} from "../types/FileType.ts";
 import {Rule} from "../types/Rule.ts";
 import {MySnippetOperations} from "./mock/mySnippetOperations.tsx";
 import {useAuth0} from "@auth0/auth0-react";
-import {useEffect, useState} from "react";
-S
+import {useEffect} from "react";
 
 export const useSnippetsOperations = () => {
     const {getAccessTokenSilently} = useAuth0()
