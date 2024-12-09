@@ -124,18 +124,22 @@ const INITIAL_LINTING_RULES: Rule[] = [
 ]
 
 const fakeTestCases: TestCase[] = [
-  {
-    id: uuid(),
-    name: "Test Case 1",
-    input: ["A", "B"],
-    output: ["C", "D"]
-  },
-  {
-    id: uuid(),
-    name: "Test Case 2",
-    input: ["E", "F"],
-    output: ["G", "H"]
-  },
+    {
+        id: uuid(),
+        name: "Test Case 1",
+        input: ["A", "B"],
+        output: ["C", "D"],
+        snippetId: '',
+        creator: ''
+    },
+    {
+        id: uuid(),
+        name: "Test Case 2",
+        input: ["E", "F"],
+        output: ["G", "H"],
+        snippetId: '',
+        creator: ''
+    },
 ]
 
 const fileTypes: FileType[] = [
@@ -169,7 +173,7 @@ export class FakeSnippetStore {
     })
 
     fakeTestCases.forEach(testCase => {
-      this.testCaseMap.set(testCase.id, testCase)
+      this.testCaseMap.set(String(testCase.id), testCase)
     })
     this.formattingRules = INITIAL_FORMATTING_RULES
     this.lintingRules = INITIAL_LINTING_RULES
@@ -239,7 +243,9 @@ export class FakeSnippetStore {
   postTestCase(testCase: Partial<TestCase>): TestCase {
     const id = testCase.id ?? uuid()
     const newTestCase = {...testCase, id} as TestCase
-    this.testCaseMap.set(id,newTestCase)
+      if (typeof id === "string") {
+          this.testCaseMap.set(id, newTestCase)
+      }
     return newTestCase
   }
 

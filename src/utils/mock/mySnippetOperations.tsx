@@ -6,7 +6,8 @@ import { TestCase } from "../../types/TestCase.ts";
 import { PaginatedUsers } from "../users.ts";
 import { TestCaseResult } from "../queries.tsx";
 import api from "../api.ts";
-import {FakeSnippetStore} from "./fakeSnippetStore.ts"; // Centralized Axios instance
+import {FakeSnippetStore} from "./fakeSnippetStore.ts";
+import {AxiosError} from "axios"; // Centralized Axios instance
 
 const DELAY: number = 1000
 
@@ -165,6 +166,13 @@ export class MySnippetOperations implements SnippetOperations {
     }
 
     async getTestCases(snippetId: string): Promise<TestCase[]> {
+        if (!snippetId || isNaN(Number(snippetId))) {
+            console.error("Invalid snippetId:", snippetId);
+            throw new Error("Invalid snippetId provided");
+        }
+
+        console.log("Fetching test cases for snippetId:", snippetId);
+
         try {
             const response = await api.get("/test-case", {
                 params: { snippetId },
@@ -172,9 +180,22 @@ export class MySnippetOperations implements SnippetOperations {
                     Authorization: `Bearer ${this.token}`,
                 },
             });
-            return response.data as TestCase[];
-        } catch (error) {
-            throw new Error(`Error fetching test cases: ${error}`);
+
+            // Return an empty array if data is not an array
+            return Array.isArray(response.data) ? response.data : [];
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                console.error("Error fetching test cases:", error.response?.data || error.message);
+                throw new Error(
+                    `Error fetching test cases: ${error.response?.data?.message || error.message}`
+                );
+            } else if (error instanceof Error) {
+                console.error("Unexpected error:", error.message);
+                throw new Error("Unexpected error occurred while fetching test cases.");
+            } else {
+                console.error("Unknown error:", error);
+                throw new Error("An unknown error occurred while fetching test cases.");
+            }
         }
     }
 
@@ -196,15 +217,30 @@ export class MySnippetOperations implements SnippetOperations {
     }
 
     async postTestCase(testCase: Partial<TestCase>): Promise<TestCase> {
+        console.log("Posting test case payload:", testCase);
         try {
-            const response = await api.post("/test-case", testCase, {
-                headers: {
-                    Authorization: `Bearer ${this.token}`,
+            const response = await api.post(
+                "/test-case",
+                {
+                    ...testCase,
+                    creator: this.token ? "auth0|674b9330cb7a312ee8f845a4" : "anonymous", // Replace with the logged-in user ID dynamically
                 },
-            });
+                {
+                    headers: {
+                        Authorization: `Bearer ${this.token}`,
+                    },
+                }
+            );
+            console.log("Test case created successfully:", response.data);
             return response.data as TestCase;
         } catch (error) {
-            throw new Error(`Error posting test case: ${error}`);
+            if (error instanceof AxiosError) {
+                console.error("Error posting test case:", error.response?.data);
+                throw new Error(`Error posting test case: ${error.response?.data?.message || error.message}`);
+            } else {
+                //console.error("Unexpected error:", error.message);
+                throw new Error("Unexpected error occurred while posting the test case.");
+            }
         }
     }
 
@@ -237,19 +273,35 @@ export class MySnippetOperations implements SnippetOperations {
     }
 
     async testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult> {
+        if (!testCase.id) {
+            console.error("Debugging missing testCaseId:", testCase); // Log the full test case object
+            throw new Error("Missing testCaseId in test case.");
+        }
+
         try {
             const response = await api.post(
                 "/test-case/run",
-                testCase,
+                null,
                 {
+                    params: { testCaseId: testCase.id, envVars: testCase.envVars || "" },
                     headers: {
                         Authorization: `Bearer ${this.token}`,
                     },
                 }
             );
+            console.log("Test result:", response.data);
             return response.data as TestCaseResult;
-        } catch (error) {
-            throw new Error(`Error testing snippet: ${error}`);
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                console.error("Error testing snippet:", error.response?.data);
+                throw new Error(`Error testing snippet: ${error.response?.data?.error || error.message}`);
+            } else if (error instanceof Error) {
+                console.error("Unexpected error:", error.message);
+                throw new Error("Unexpected error occurred while testing the snippet.");
+            } else {
+                console.error("Unknown error:", error);
+                throw new Error("An unknown error occurred while testing the snippet.");
+            }
         }
     }
 

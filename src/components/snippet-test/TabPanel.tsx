@@ -80,10 +80,10 @@ export const TabPanel = ({value, index, test: initialTest, setTestCase, removeTe
                     <Box display="flex" flexDirection="row" gap={1}>
                         {
                             (testData?.id && removeTestCase) && (
-                            <Button onClick={() => removeTestCase(testData?.id ?? "")} variant={"outlined"} color={"error"}
-                                    startIcon={<Delete/>}>
-                                Remove
-                            </Button>)
+                                <Button onClick={() => removeTestCase(testData?.id?.toString() ?? "")} variant={"outlined"} color={"error"}
+                                        startIcon={<Delete/>}>
+                                    Remove
+                                </Button>)
                         }
                         <Button disabled={!testData?.name} onClick={() => setTestCase(testData ?? {})} variant={"outlined"} startIcon={<Save/>}>
                             Save
