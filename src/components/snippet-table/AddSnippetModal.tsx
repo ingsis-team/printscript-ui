@@ -23,7 +23,7 @@ import {useCreateSnippet, useGetFileTypes} from "../../utils/queries.tsx";
 import {queryClient} from "../../App.tsx";
 import Swal from "sweetalert2";
 
-export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
+export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     open: boolean,
     onClose: () => void,
     username: string,
