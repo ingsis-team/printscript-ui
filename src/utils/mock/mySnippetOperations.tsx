@@ -344,4 +344,18 @@ export class MySnippetOperations implements SnippetOperations {
             throw new Error(`Error modifying linting rules: ${error}`);
         }
     }
+
+    async getAllAuth0Users(): Promise<any[]> {
+        try {
+            const response = await api.get("/snippets/auth0/all-users", {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            throw new Error(`Error fetching all Auth0 users: ${error}`);
+        }
+    }
+
 }

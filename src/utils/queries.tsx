@@ -183,3 +183,10 @@ export const useGetFileTypes = () => {
     return useQuery<FileType[], Error>('fileTypes', () => snippetOperations.getFileTypes());
 }
 
+export const useGetAllAuth0Users = () => {
+    const snippetOperations = useSnippetsOperations();
+
+    return useQuery(['allAuth0Users'], () => snippetOperations.getAllAuth0Users(), {
+        enabled: true, // Ejecutar automáticamente al renderizar
+    });
+};

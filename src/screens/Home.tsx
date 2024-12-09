@@ -4,14 +4,13 @@ import {Navigate, useParams} from "react-router-dom";
 import {useEffect, useState} from "react";
 import {SnippetDetail} from "./SnippetDetail.tsx";
 import {Drawer} from "@mui/material";
-import {useGetSnippets} from "../utils/queries.tsx";
+import {useGetAllAuth0Users, useGetSnippets} from "../utils/queries.tsx";
 import {usePaginationContext} from "../contexts/paginationContext.tsx";
 import useDebounce from "../hooks/useDebounce.ts";
 import {useAuth0} from "@auth0/auth0-react";
 
 const HomeScreen = () => {
     const { isAuthenticated } = useAuth0();
-
     const {id: paramsId} = useParams<{ id: string }>();
     const [searchTerm, setSearchTerm] = useState('');
     const [snippetName, setSnippetName] = useState('');
