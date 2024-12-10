@@ -39,29 +39,30 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
 
     const handleCreateSnippet = async () => {
         console.log(code);
-        const nickname = localStorage.getItem("username")
+        const nickname = localStorage.getItem("username") || "Guest"; // Fallback value
         const newSnippet: CreateSnippet = {
             name: snippetName,
             content: code,
             language: language,
             extension: fileTypes?.find((f) => f.language === language)?.extension ?? "prs",
             username: nickname,
+            author: nickname, // Adding the author field
         };
 
         try {
-            await createSnippet(newSnippet); // Intenta crear el snippet
-            onClose(); // Cierra el modal si tiene éxito
+            await createSnippet(newSnippet); // Try to create the snippet
+            onClose(); // Close the modal on success
         } catch (error) {
-            console.error("Error al crear el snippet:", error);
+            console.error("Error creating snippet:", error);
             onClose();
-            // Muestra alerta en caso de error
+            // Show alert on error
             Swal.fire({
-                title: "Error al crear snippet",
-                text: "La sintaxis es inválida o ocurrió un error.",
-                icon: "error"
+                title: "Error creating snippet",
+                text: "Invalid syntax or an error occurred.",
+                icon: "error",
             });
         }
-    }
+    };
 
     useEffect(() => {
         if (defaultSnippet) {
