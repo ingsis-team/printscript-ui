@@ -6,35 +6,35 @@ import {TestCaseResult} from "../queries.tsx";
 import {FileType} from "../../types/FileType.ts";
 import {Rule} from "../../types/Rule.ts";
 
-const INITIAL_SNIPPETS: Snippet[] = [
-  {
-    id: '9af91631-cdfc-4341-9b8e-3694e5cb3672',
-    name: 'Super Snippet',
-    content: 'let a : number = 5;\nlet b : number = 5;\n\nprintln(a + b);',
-    compliance: 'pending',
-    author: 'John Doe',
-    language: 'printscript',
-    extension: 'prs'
-  },
-  {
-    id: 'c48cf644-fbc1-4649-a8f4-9dd7110640d9',
-    name: 'Extra cool Snippet',
-    content: 'let a : number = 5;\nlet b : number = 5;\n\nprintln(a + b);',
-    compliance: 'not-compliant',
-    author: 'John Doe',
-    language: 'printscript',
-    extension: 'prs'
-  },
-  {
-    id: '34bf4b7a-d4a1-48be-bb26-7d9a3be46227',
-    name: 'Boaring Snippet',
-    content: 'let a : number = 5;\nlet b : number = 5;\n\nprintln(a + b);',
-    compliance: 'compliant',
-    author: 'John Doe',
-    language: 'printscript',
-    extension: 'prs'
-  }
-]
+// const INITIAL_SNIPPETS: Snippet[] = [
+//   {
+//     id: '9af91631-cdfc-4341-9b8e-3694e5cb3672',
+//     name: 'Super Snippet',
+//     content: 'let a : number = 5;\nlet b : number = 5;\n\nprintln(a + b);',
+//     compliance: 'pending',
+//     author: 'John Doe',
+//     language: 'printscript',
+//     extension: 'prs'
+//   },
+//   {
+//     id: 'c48cf644-fbc1-4649-a8f4-9dd7110640d9',
+//     name: 'Extra cool Snippet',
+//     content: 'let a : number = 5;\nlet b : number = 5;\n\nprintln(a + b);',
+//     compliance: 'not-compliant',
+//     author: 'John Doe',
+//     language: 'printscript',
+//     extension: 'prs'
+//   },
+//   {
+//     id: '34bf4b7a-d4a1-48be-bb26-7d9a3be46227',
+//     name: 'Boaring Snippet',
+//     content: 'let a : number = 5;\nlet b : number = 5;\n\nprintln(a + b);',
+//     compliance: 'compliant',
+//     author: 'John Doe',
+//     language: 'printscript',
+//     extension: 'prs'
+//   }
+// ]
 
 const paginatedUsers: PaginatedUsers = {
   count: 5,
@@ -168,9 +168,9 @@ export class FakeSnippetStore {
   private lintingRules: Rule[] = [];
 
   constructor() {
-    INITIAL_SNIPPETS.forEach(snippet => {
-      this.snippetMap.set(snippet.id, snippet)
-    })
+    // INITIAL_SNIPPETS.forEach((snippet: Snippet) => {
+    //   this.snippetMap.set(snippet.id, snippet)
+    // })
 
     fakeTestCases.forEach(testCase => {
       this.testCaseMap.set(String(testCase.id), testCase)
@@ -188,7 +188,7 @@ export class FakeSnippetStore {
     const newSnippet = {
       id,
       compliance: 'compliant' as ComplianceEnum,
-      author: 'yo',
+      // author: 'yo',
       ...createSnippet
     }
     this.snippetMap.set(id, newSnippet)
