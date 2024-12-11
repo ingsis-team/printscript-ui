@@ -19,7 +19,7 @@ export const useSnippetsOperations = (): SnippetOperations => {
                 if (token) snippetOperations.setToken(token);
             })
             .catch(error => console.error('Error fetching token:', error));
-    }, [getAccessTokenSilently]);
+    }, [getAccessTokenSilently, snippetOperations]);
 
     return snippetOperations;
 };
