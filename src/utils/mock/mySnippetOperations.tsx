@@ -223,7 +223,7 @@ export class MySnippetOperations implements SnippetOperations {
                 "/test-case",
                 {
                     ...testCase,
-                    creator: this.token ? "auth0|674b9330cb7a312ee8f845a4" : "anonymous", // Replace with the logged-in user ID dynamically
+                    creator: "" , // Replace with the logged-in user ID dynamically
                 },
                 {
                     headers: {

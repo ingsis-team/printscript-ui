@@ -28,6 +28,7 @@ export const Navbar = () => {
     const navigate = useNavigate();
     const { isAuthenticated, logout } = useAuth0();
 
+
     return (
         <AppBar position="static" elevation={0}>
             <Container maxWidth="xl">
