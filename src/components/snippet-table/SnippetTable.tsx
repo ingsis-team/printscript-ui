@@ -58,7 +58,6 @@ export const SnippetTable = (props: SnippetTableProps) => {
     }
     file.text().then((text) => {
       setSnippet({
-        author: "",
         username: username,
         name: splitName[0],
         content: text,
