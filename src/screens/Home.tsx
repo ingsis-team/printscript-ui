@@ -17,6 +17,8 @@ const HomeScreen = () => {
     const [snippetId, setSnippetId] = useState<string | null>(null)
     const {page, page_size, count, handleChangeCount} = usePaginationContext()
     const {data, isLoading} = useGetSnippets(page, page_size, snippetName)
+    const handleCloseModal = () => setSnippetId(null)
+    const username = localStorage.getItem("username")
 
     useEffect(() => {
         if (data?.count && data.count != count) {
@@ -31,7 +33,29 @@ const HomeScreen = () => {
         }
     }, [paramsId]);
 
-    const handleCloseModal = () => setSnippetId(null)
+    // Verificar y registrar el usuario al iniciar sesión
+    useEffect(() => {
+        if (isAuthenticated && username !== "") {
+            const backendUrl = import.meta.env.VITE_BACKEND_URL;
+            const url = `${backendUrl}/users/check-or-create?nickname=${username}`;
+            const token = localStorage.getItem("token");
+
+            fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error("Error al verificar o crear el usuario");
+                    }
+                })
+                .catch((err) => console.error("Error en el registro/verificación del usuario:", err));
+        }
+    }, [isAuthenticated]);
+
 
     // DeBounce Function
     useDebounce(() => {
@@ -44,8 +68,6 @@ const HomeScreen = () => {
     const handleSearchSnippet = (snippetName: string) => {
         setSearchTerm(snippetName);
     };
-
-    const username = localStorage.getItem("username")
 
     return (
         <>
