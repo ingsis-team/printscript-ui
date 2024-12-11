@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 
 export const useSnippetsOperations = (): SnippetOperations => {
     const { getAccessTokenSilently } = useAuth0();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const snippetOperations: SnippetOperations = new MySnippetOperations();
 
     useEffect(() => {
@@ -52,10 +53,7 @@ export const useCreateSnippet = ({ onSuccess }: { onSuccess: () => void }): UseM
     );
 };
 
-export const useUpdateSnippetById = ({
-                                         onSuccess,
-                                         onError,
-                                     }: {
+export const useUpdateSnippetById = ({onSuccess, onError,}: {
     onSuccess: () => void;
     onError?: (error: Error) => void;
 }): UseMutationResult<Snippet, Error, { id: string; updateSnippet: UpdateSnippet }> => {
@@ -76,13 +74,36 @@ export const useGetUsers = (name: string = '', page: number = 0, pageSize: numbe
     );
 };
 
-export const useShareSnippet = (): UseMutationResult<Snippet, Error, { snippetId: string; userId: string }> => {
+export const useShareSnippet = ({
+                                    onSuccess,
+                                    onError,
+                                }: {
+    onSuccess: () => void;
+    onError?: (error: Error) => void;
+}): UseMutationResult<
+    Snippet,
+    Error,
+    { snippetId: string; friendUsername: string }
+> => {
     const snippetOperations = useSnippetsOperations();
 
-    return useMutation<Snippet, Error, { snippetId: string; userId: string }>(
-        ({ snippetId, userId }) => snippetOperations.shareSnippet(snippetId, userId)
+    return useMutation<
+        Snippet,
+        Error,
+        { snippetId: string; friendUsername: string }
+    >(
+        ({ snippetId, friendUsername }) =>
+            snippetOperations.shareSnippet(snippetId, friendUsername),
+        {
+            onSuccess,
+            onError: (error: Error) => {
+                console.error("Error en el callback onError:", error);
+                onError?.(error);
+            },
+        }
     );
 };
+
 
 export const useGetTestCases = (snippetId: string) => {
     const snippetOperations = useSnippetsOperations();

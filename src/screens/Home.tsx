@@ -54,7 +54,7 @@ const HomeScreen = () => {
                 })
                 .catch((err) => console.error("Error en el registro/verificación del usuario:", err));
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, username]);
 
 
     // DeBounce Function

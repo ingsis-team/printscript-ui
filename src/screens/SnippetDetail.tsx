@@ -19,7 +19,7 @@ import {SnippetExecution} from "./SnippetExecution.tsx";
 import ReadMoreIcon from '@mui/icons-material/ReadMore';
 import {queryClient} from "../App.tsx";
 import {DeleteConfirmationModal} from "../components/snippet-detail/DeleteConfirmationModal.tsx";
-import Swal from "sweetalert2";
+import Swal, {SweetAlertIcon} from "sweetalert2";
 
 type SnippetDetailProps = {
     id: string;
@@ -58,9 +58,15 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] = useState(false)
     const [testModalOpened, setTestModalOpened] = useState(false);
     const [runSnippet, setRunSnippet] = useState(false);
-
     const {data: snippet, isLoading} = useGetSnippetById(id);
-    const {mutate: shareSnippet, isLoading: loadingShare} = useShareSnippet()
+    const { mutate: shareSnippet, isLoading: loadingShare } = useShareSnippet({
+        onSuccess: () => {
+            alert("success", "Snippet compartido", "El snippet se compartió correctamente.");
+        },
+        onError: (error) => {
+            alert("error", "Error al compartir", error.message || "Hubo un problema al intentar compartir el snippet.");
+        },
+    });
     const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet()
     const {mutate: updateSnippet, isLoading: isUpdateSnippetLoading} = useUpdateSnippetById({
         onSuccess: () => {
@@ -68,13 +74,22 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
         },
         onError: () => {
             handleCloseModal()
-            Swal.fire({
-                title: "Error al actualizar",
-                text: "Ocurrió un error al intentar actualizar el snippet. Por favor, revisa la sintaxis.",
-                icon: "error",
-            });
+            alert("error", "Error", "Error al intentar actualizar el snippet. Revise la sintaxis.")
         }
     })
+
+    function alert(icon: SweetAlertIcon, title: string, text: string): void;
+    function alert(icon: string, title: string, text: string): void;
+    function alert(icon: string, title: string, text: string): void {
+        const validIcons: SweetAlertIcon[] = ["success", "error", "warning", "info", "question"];
+        const safeIcon: SweetAlertIcon = validIcons.includes(icon as SweetAlertIcon) ? (icon as SweetAlertIcon) : "info";
+
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: safeIcon,
+        }).then();
+    }
 
     useEffect(() => {
         if (snippet) {
@@ -88,8 +103,8 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
         }
     }, [formatSnippetData])
 
-    async function handleShareSnippet(userId: string) {
-        shareSnippet({snippetId: id, userId})
+    async function handleShareSnippet(username: string) {
+        shareSnippet({snippetId: id, friendUsername: username})
     }
 
     return (

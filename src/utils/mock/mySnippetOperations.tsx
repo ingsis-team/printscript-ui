@@ -122,22 +122,27 @@ export class MySnippetOperations implements SnippetOperations {
         }
     }
 
-    async shareSnippet(snippetId: string, userId: string): Promise<Snippet> {
+    async shareSnippet(snippetId: string, friendUsername: string): Promise<Snippet> {
         try {
-            const response = await api.post(
-                "/snippets/share",
-                { snippetId, userId },
-                {
-                    headers: {
-                        Authorization: `Bearer ${this.token}`,
-                    },
-                }
-            );
+            console.log("Intentando compartir el snippet con:", { snippetId, friendUsername });
+            const response = await api.post("/snippets/share", { snippetId, friendUsername }, {
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                },
+            });
+
+            console.log("Respuesta del servidor:", response.data);
             return response.data as Snippet;
-        } catch (error) {
-            throw new Error(`Error sharing snippet: ${error}`);
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                console.error("Error desde el servidor:", error.response?.data);
+                throw new Error(error.response?.data?.message || "Error al compartir el snippet");
+            }
+            console.error("Error de red:", (error as Error).message);
+            throw new Error("Network error or server is unreachable");
         }
     }
+
 
     async getFormatRules(): Promise<Rule[]> {
         try {
