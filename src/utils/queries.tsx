@@ -158,7 +158,7 @@ export const useModifyLintingRules = ({onSuccess}: {onSuccess: () => void}) => {
     );
 }
 
-export const useFormatSnippet = (p: any, p1: any) => {
+export const useFormatSnippet = (/*p: any, p1: any*/) => {
     const snippetOperations = useSnippetsOperations()
 
     return useMutation<string, Error, string>(
@@ -182,11 +182,3 @@ export const useGetFileTypes = () => {
 
     return useQuery<FileType[], Error>('fileTypes', () => snippetOperations.getFileTypes());
 }
-
-export const useGetAllAuth0Users = () => {
-    const snippetOperations = useSnippetsOperations();
-
-    return useQuery(['allAuth0Users'], () => snippetOperations.getAllAuth0Users(), {
-        enabled: true, // Ejecutar automáticamente al renderizar
-    });
-};

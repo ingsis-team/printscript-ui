@@ -7,7 +7,7 @@ import { PaginatedUsers } from "../users.ts";
 import { TestCaseResult } from "../queries.tsx";
 import api from "../api.ts";
 import {FakeSnippetStore} from "./fakeSnippetStore.ts";
-import {AxiosError} from "axios"; // Centralized Axios instance
+import {AxiosError} from "axios";
 
 const DELAY: number = 1000
 
@@ -342,19 +342,6 @@ export class MySnippetOperations implements SnippetOperations {
             return response.data as Rule[];
         } catch (error) {
             throw new Error(`Error modifying linting rules: ${error}`);
-        }
-    }
-
-    async getAllAuth0Users(): Promise<any[]> {
-        try {
-            const response = await api.get("/snippets/auth0/all-users", {
-                headers: {
-                    Authorization: `Bearer ${this.token}`,
-                },
-            });
-            return response.data;
-        } catch (error) {
-            throw new Error(`Error fetching all Auth0 users: ${error}`);
         }
     }
 

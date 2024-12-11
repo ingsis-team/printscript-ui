@@ -17,8 +17,8 @@ createRoot(document.getElementById('root')!).render(
             clientId={import.meta.env.VITE_AUTH0_CLIENT_ID ?? ""}
             authorizationParams={{
                 redirect_uri: window.location.origin,
-                audience: "https://snippet-searcher2/",
-                scope: "email profile read:snippets SCOPE_read:snippets SCOPE_write:snippets"
+                audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+                scope: "email profile read:snippets SCOPE_read:snippets SCOPE_write:snippets read:users"
             }}
         >
             <PaginationProvider>

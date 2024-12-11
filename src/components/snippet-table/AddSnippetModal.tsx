@@ -23,10 +23,9 @@ import {useCreateSnippet, useGetFileTypes} from "../../utils/queries.tsx";
 import {queryClient} from "../../App.tsx";
 import Swal from "sweetalert2";
 
-export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
+export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     open: boolean,
     onClose: () => void,
-    username: string,
     defaultSnippet?: CreateSnippetWithLang
 }) => {
     const [language, setLanguage] = useState(defaultSnippet?.language ?? "printscript");
@@ -45,7 +44,7 @@ export const AddSnippetModal = ({open, onClose, username, defaultSnippet}: {
             content: code,
             language: language,
             extension: fileTypes?.find((f) => f.language === language)?.extension ?? "prs",
-            username: nickname,
+            username: nickname!=null ? nickname : "",
         };
 
         try {
