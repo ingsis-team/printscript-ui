@@ -12,6 +12,10 @@ export type SnackbarContextType = {
 }
 
 
-export const SnackbarContext = createContext<SnackbarContextType>(null)
+export const SnackbarContext = createContext<SnackbarContextType>({
+  active: [],
+  createSnackbar: () => {},
+});
+
 
 export const useSnackbarContext = (): SnackbarContextType => useContext(SnackbarContext)

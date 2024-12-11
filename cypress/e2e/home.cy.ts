@@ -38,7 +38,8 @@ describe('Home', () => {
       name: "Test name",
       content: "print(1)",
       language: "printscript",
-      extension: ".ps"
+      extension: ".ps",
+      username: localStorage.getItem("username") ?? ""
     }
 
     cy.intercept('GET', BACKEND_URL+"/snippets*", (req) => {

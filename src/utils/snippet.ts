@@ -28,7 +28,6 @@ export type Snippet = CreateSnippet & {
 
 type SnippetStatus = {
     compliance: ComplianceEnum;
-    author: string;
     username: string;
 }
 export type PaginatedSnippets = Pagination & {
