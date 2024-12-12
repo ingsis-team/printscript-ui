@@ -32,5 +32,9 @@ jobs:
           build-args: |
             "USERNAME=${{ secrets.USERNAME }}"
             "TOKEN=${{ secrets.ORG_DOCKER_PACKAGES_SECRET }}"
+            "VITE_AUTH0_AUDIENCE=${{ secrets.VITE_AUTH0_AUDIENCE}}"
+            "VITE_AUTH0_CLIENT_ID=${{secrets.VITE_AUTH0_CLIENT_ID}}"
+            "VITE_AUTH0_DOMAIN=${{secrets.VITE_AUTH0_DOMAIN}}"
+            "BACKEND_URL=${{secrets.BACKEND_URL}}"
 
           push: true
