@@ -2,12 +2,12 @@ import {useMutation, UseMutationResult, useQuery} from 'react-query';
 import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from './snippet.ts';
 import {SnippetOperations} from "./snippetOperations.ts";
 import {PaginatedUsers} from "./users.ts";
-import {FakeSnippetOperations} from "./mock/fakeSnippetOperations.ts";
+import {RealSnippetOperations} from "./mock/RealSnippetOperations.ts";
 import {TestCase} from "../types/TestCase.ts";
 import {FileType} from "../types/FileType.ts";
 import {Rule} from "../types/Rule.ts";
 
-const snippetOperations: SnippetOperations = new FakeSnippetOperations(); // TODO: Replace with your implementation
+const snippetOperations: SnippetOperations = new RealSnippetOperations();
 
 export const useGetSnippets = (page: number = 0, pageSize: number = 10, snippetName?: string) => {
     return useQuery<PaginatedSnippets, Error>(['listSnippets', page, pageSize], () => snippetOperations.listSnippetDescriptors(page, pageSize,snippetName));
@@ -23,13 +23,14 @@ export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutat
     return useMutation<Snippet, Error, CreateSnippet>(createSnippet => snippetOperations.createSnippet(createSnippet), {onSuccess});
 };
 
-export const useUpdateSnippetById = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<Snippet, Error, {
+export const useUpdateSnippetById = ({onSuccess, onError}: {onSuccess: () => void, onError?: (error: Error) => void}): UseMutationResult<Snippet, Error, {
     id: string;
     updateSnippet: UpdateSnippet
 }> => {
     return useMutation<Snippet, Error, { id: string; updateSnippet: UpdateSnippet }>(
         ({id, updateSnippet}) => snippetOperations.updateSnippetById(id, updateSnippet),{
             onSuccess,
+            onError,
         }
     );
 };
