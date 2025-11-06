@@ -1,6 +1,6 @@
 import {withNavbar} from "../components/navbar/withNavbar.tsx";
 import {SnippetTable} from "../components/snippet-table/SnippetTable.tsx";
-import {Navigate, useParams} from "react-router-dom";
+import {useParams} from "react-router-dom";
 import {useEffect, useState} from "react";
 import {SnippetDetail} from "./SnippetDetail.tsx";
 import {Drawer} from "@mui/material";
@@ -60,7 +60,7 @@ const HomeScreen = () => {
   } else if (isAuthenticated){
       return(
           <>
-              <SnippetTable loading={isLoading} handleClickSnippet={setSnippetId} snippets={data?.snippets}
+              <SnippetTable loading={isLoading} handleClickSnippet={setSnippetId} snippets={data?.content}
                             handleSearchSnippet={handleSearchSnippet}/>
               <Drawer open={!!snippetId} anchor={"right"} onClose={handleCloseModal}>
                   {snippetId && <SnippetDetail handleCloseModal={handleCloseModal} id={snippetId}/>}
