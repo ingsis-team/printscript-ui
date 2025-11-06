@@ -1,4 +1,4 @@
-import {alpha, Skeleton, styled, TableRow, TableRowProps} from "@mui/material";
+import {alpha, Chip, Skeleton, styled, TableRow, TableRowProps} from "@mui/material";
 import {StyledTableCell} from "./SnippetTable.tsx";
 import {Snippet} from "../../utils/snippet.ts";
 
@@ -36,12 +36,32 @@ const StyledTableRow = styled(TableRow)(({theme}) => ({
 
 
 export const SnippetRow = ({snippet, onClick, ...props}: { snippet: Snippet, onClick: () => void } & TableRowProps) => {
+  const isValid = snippet.compliance === 'compliant';
+  const getValidityColor = () => {
+    switch (snippet.compliance) {
+      case 'compliant':
+        return 'success';
+      case 'not-compliant':
+      case 'failed':
+        return 'error';
+      case 'pending':
+      default:
+        return 'warning';
+    }
+  };
+
   return (
       <StyledTableRow onClick={onClick} sx={{backgroundColor: 'white', border: 0, height: '75px'}} {...props}>
         <StyledTableCell>{snippet.name}</StyledTableCell>
         <StyledTableCell>{snippet.language}</StyledTableCell>
         <StyledTableCell>{snippet.author}</StyledTableCell>
-        <StyledTableCell>{snippet.compliance}</StyledTableCell>
+        <StyledTableCell>
+          <Chip 
+            label={isValid ? 'Valid' : snippet.compliance} 
+            color={getValidityColor() as 'success' | 'error' | 'warning'}
+            size="small"
+          />
+        </StyledTableCell>
       </StyledTableRow>
   )
 }

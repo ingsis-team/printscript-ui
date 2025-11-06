@@ -27,24 +27,22 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async createSnippet(createSnippet: CreateSnippet): Promise<Snippet> {
         try {
-            // Convert to multipart/form-data as backend expects
-            const formData = new FormData();
-            const blob = new Blob([createSnippet.content], {type: 'text/plain'});
-            const file = new File([blob], `${createSnippet.name}.${createSnippet.extension}`, {type: 'text/plain'});
-            
-            formData.append('file', file);
-            formData.append('name', createSnippet.name);
-            formData.append('description', ''); // Add description field
-            formData.append('language', createSnippet.language);
-            formData.append('version', '1.1'); // Default version
+            // Use JSON endpoint for editor-based creation
+            const requestBody = {
+                name: createSnippet.name,
+                description: '', // Default empty description
+                language: createSnippet.language.toUpperCase(), // Convert to uppercase enum
+                content: createSnippet.content,
+                version: '1.1', // Default version
+            };
 
             const response = await axios.post(
                 SNIPPET_SERVICE_URL,
-                formData,
+                requestBody,
                 {
                     headers: {
                         ...getAuthHeaders(),
-                        'Content-Type': 'multipart/form-data',
+                        'Content-Type': 'application/json',
                     },
                 }
             );
@@ -89,24 +87,44 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
 
+            // Backend returns List<SnippetResponseDTO>, not paginated
+            const allSnippets = Array.isArray(response.data) ? response.data : [];
+            
             // Get permissions for current user to determine which snippets they can see
             const userId = getUserId();
-            const permissionsResponse = await axios.get(
-                `${PERMISSION_SERVICE_URL}/user/${userId}`,
-                {
-                    headers: getAuthHeaders(),
-                }
-            );
+            let userPermissions: any[] = [];
+            try {
+                const permissionsResponse = await axios.get(
+                    `${PERMISSION_SERVICE_URL}/user/${userId}`,
+                    {
+                        headers: getAuthHeaders(),
+                    }
+                );
+                userPermissions = permissionsResponse.data || [];
+            } catch (permError) {
+                // If permission service fails, continue with snippets from current user
+                console.warn('Could not fetch permissions, showing only owned snippets');
+            }
 
-            const snippets = response.data.map((s: any) => this.mapBackendSnippetToFrontend(s));
+            // Map backend snippets to frontend format
+            const snippets = allSnippets.map((s: any) => this.mapBackendSnippetToFrontend(s));
+            
+            // Apply pagination on frontend side (backend doesn't support it yet)
+            const startIndex = page * pageSize;
+            const endIndex = startIndex + pageSize;
+            const paginatedSnippets = snippets.slice(startIndex, endIndex);
             
             return {
-                content: snippets,
+                content: paginatedSnippets,
                 page,
                 page_size: pageSize,
                 count: snippets.length,
             };
         } catch (error: any) {
+            // More detailed error handling
+            if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+                throw new Error(`Network Error: Could not connect to backend. Please check if the service is running.`);
+            }
             throw new Error(`Error fetching snippets: ${error.message}`);
         }
     }
@@ -119,20 +137,18 @@ export class RealSnippetOperations implements SnippetOperations {
                 throw new Error('You do not have permission to update this snippet');
             }
 
-            // Convert to multipart/form-data
-            const formData = new FormData();
-            const blob = new Blob([updateSnippet.content], {type: 'text/plain'});
-            const file = new File([blob], `snippet.txt`, {type: 'text/plain'});
-            
-            formData.append('file', file);
+            // Use JSON endpoint for editor-based update
+            const requestBody = {
+                content: updateSnippet.content,
+            };
 
             const response = await axios.put(
                 `${SNIPPET_SERVICE_URL}/${id}`,
-                formData,
+                requestBody,
                 {
                     headers: {
                         ...getAuthHeaders(),
-                        'Content-Type': 'multipart/form-data',
+                        'Content-Type': 'application/json',
                     },
                 }
             );
@@ -273,12 +289,17 @@ export class RealSnippetOperations implements SnippetOperations {
     }
 
     private mapBackendSnippetToFrontend(backendSnippet: any): Snippet {
+        // Convert backend language enum (PRINTSCRIPT) to lowercase for frontend
+        const language = typeof backendSnippet.language === 'string' 
+            ? backendSnippet.language.toLowerCase() 
+            : backendSnippet.language;
+        
         return {
             id: String(backendSnippet.id),
             name: backendSnippet.name,
             content: backendSnippet.content,
-            language: backendSnippet.language,
-            extension: this.getExtensionFromLanguage(backendSnippet.language),
+            language: language,
+            extension: this.getExtensionFromLanguage(language),
             author: backendSnippet.user_id || backendSnippet.userId || 'Unknown',
             compliance: this.mapComplianceStatus(backendSnippet),
         };
