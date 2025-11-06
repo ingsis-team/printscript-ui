@@ -7,11 +7,11 @@ import "prismjs/themes/prism-okaidia.css";
 import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  useUpdateSnippetById
+    useUpdateSnippetById
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById, useShareSnippet} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
-import {BugReport, Delete, Download, Save, Share} from "@mui/icons-material";
+import {BugReport, Delete, Download, PlayArrow, Save, Share, StopRounded} from "@mui/icons-material";
 import {ShareSnippetModal} from "../components/snippet-detail/ShareSnippetModal.tsx";
 import {TestSnippetModal} from "../components/snippet-test/TestSnippetModal.tsx";
 import {Snippet} from "../utils/snippet.ts";
@@ -23,31 +23,31 @@ import Login from "../components/login/Login.tsx";
 import {useAuth0} from "@auth0/auth0-react";
 
 type SnippetDetailProps = {
-  id: string;
-  handleCloseModal: () => void;
+    id: string;
+    handleCloseModal: () => void;
 }
 
 const DownloadButton = ({snippet}: { snippet?: Snippet }) => {
-  if (!snippet) return null;
-  const file = new Blob([snippet.content], {type: 'text/plain'});
+    if (!snippet) return null;
+    const file = new Blob([snippet.content], {type: 'text/plain'});
 
-  return (
-    <Tooltip title={"Download"}>
-      <IconButton sx={{
-        cursor: "pointer"
-      }}>
-        <a download={`${snippet.name}.${snippet.extension}`} target="_blank"
-           rel="noreferrer" href={URL.createObjectURL(file)} style={{
-          textDecoration: "none",
-          color: "inherit",
-          display: 'flex',
-          alignItems: 'center',
-        }}>
-          <Download/>
-        </a>
-      </IconButton>
-    </Tooltip>
-  )
+    return (
+        <Tooltip title={"Download"}>
+            <IconButton sx={{
+                cursor: "pointer"
+            }}>
+                <a download={`${snippet.name}.${snippet.extension}`} target="_blank"
+                   rel="noreferrer" href={URL.createObjectURL(file)} style={{
+                    textDecoration: "none",
+                    color: "inherit",
+                    display: 'flex',
+                    alignItems: 'center',
+                }}>
+                    <Download/>
+                </a>
+            </IconButton>
+        </Tooltip>
+    )
 }
 
 export const SnippetDetail = (props: SnippetDetailProps) => {
@@ -60,27 +60,26 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] = useState(false)
   const [testModalOpened, setTestModalOpened] = useState(false);
 
-  const {data: snippet, isLoading} = useGetSnippetById(id);
-  const {mutate: shareSnippet, isLoading: loadingShare} = useShareSnippet()
-  const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet()
-  const {mutate: updateSnippet, isLoading: isUpdateSnippetLoading} = useUpdateSnippetById({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
+    const {data: snippet, isLoading} = useGetSnippetById(id);
+    const {mutate: shareSnippet, isLoading: loadingShare} = useShareSnippet()
+    const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet(snippet?.id ?? "", snippet?.language ?? "")
+    const {mutate: updateSnippet, isLoading: isUpdateSnippetLoading} = useUpdateSnippetById({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
 
-  useEffect(() => {
-    if (snippet) {
-      setCode(snippet.content);
+    useEffect(() => {
+        if (snippet) {
+            setCode(snippet.content);
+        }
+    }, [snippet]);
+
+    useEffect(() => {
+        if (formatSnippetData) {
+            setCode(formatSnippetData)
+        }
+    }, [formatSnippetData])
+
+    async function handleShareSnippet(userId: string) {
+        shareSnippet({snippetId: id, userId})
     }
-  }, [snippet]);
-
-  useEffect(() => {
-    if (formatSnippetData) {
-      setCode(formatSnippetData)
-    }
-  }, [formatSnippetData])
-
-
-  async function handleShareSnippet(userId: string) {
-    shareSnippet({snippetId: id, userId})
-  }
 
   return (
       isAuthenticated ? <Box p={4} minWidth={'60vw'}>

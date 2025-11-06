@@ -1,6 +1,6 @@
 import {withNavbar} from "../components/navbar/withNavbar.tsx";
 import {SnippetTable} from "../components/snippet-table/SnippetTable.tsx";
-import {useParams} from "react-router-dom";
+import {Navigate, useParams} from "react-router-dom";
 import {useEffect, useState} from "react";
 import {SnippetDetail} from "./SnippetDetail.tsx";
 import {Drawer} from "@mui/material";
@@ -74,5 +74,34 @@ const HomeScreen = () => {
   }
 }
 
-export default withNavbar(HomeScreen);
+    const handleCloseModal = () => setSnippetId(null)
 
+    // DeBounce Function
+    useDebounce(() => {
+            setSnippetName(
+                searchTerm
+            );
+        }, [searchTerm], 800
+    );
+
+    const handleSearchSnippet = (snippetName: string) => {
+        setSearchTerm(snippetName);
+    };
+
+    return (
+        <>
+            {isAuthenticated ?
+                <>
+                    <SnippetTable loading={isLoading} handleClickSnippet={setSnippetId} snippets={data?.content}
+                                  handleSearchSnippet={handleSearchSnippet}/>
+                    <Drawer open={!!snippetId} anchor={"right"} onClose={handleCloseModal}>
+                        {snippetId && <SnippetDetail handleCloseModal={handleCloseModal} id={snippetId}/>}
+                    </Drawer>
+                </>
+                : <Navigate to={'/login'}/>
+            }
+        </>
+    )
+}
+
+export default withNavbar(HomeScreen);

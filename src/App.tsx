@@ -4,17 +4,25 @@ import {createBrowserRouter} from "react-router-dom";
 import HomeScreen from "./screens/Home.tsx";
 import {QueryClient, QueryClientProvider} from "react-query";
 import RulesScreen from "./screens/Rules.tsx";
-// import {withAuthenticationRequired} from "@auth0/auth0-react";
+import PrivateRoute from "./screens/PrivateRoute.tsx";
 
 const router = createBrowserRouter([
     {
         path: "/",
-        element: <HomeScreen/>
+        element: (
+            <PrivateRoute>
+                <HomeScreen />
+            </PrivateRoute>
+        )
     },
     {
         path: '/rules',
-        element: <RulesScreen/>
-    }
+        element: (
+            <PrivateRoute>
+                <RulesScreen />
+            </PrivateRoute>
+        )
+    },
 ]);
 
 export const queryClient = new QueryClient()
@@ -26,7 +34,4 @@ const App = () => {
     );
 }
 
-// To enable Auth0 integration change the following line
 export default App;
-// for this one:
-// export default withAuthenticationRequired(App);
