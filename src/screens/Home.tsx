@@ -74,34 +74,4 @@ const HomeScreen = () => {
   }
 }
 
-    const handleCloseModal = () => setSnippetId(null)
-
-    // DeBounce Function
-    useDebounce(() => {
-            setSnippetName(
-                searchTerm
-            );
-        }, [searchTerm], 800
-    );
-
-    const handleSearchSnippet = (snippetName: string) => {
-        setSearchTerm(snippetName);
-    };
-
-    return (
-        <>
-            {isAuthenticated ?
-                <>
-                    <SnippetTable loading={isLoading} handleClickSnippet={setSnippetId} snippets={data?.content}
-                                  handleSearchSnippet={handleSearchSnippet}/>
-                    <Drawer open={!!snippetId} anchor={"right"} onClose={handleCloseModal}>
-                        {snippetId && <SnippetDetail handleCloseModal={handleCloseModal} id={snippetId}/>}
-                    </Drawer>
-                </>
-                : <Navigate to={'/login'}/>
-            }
-        </>
-    )
-}
-
 export default withNavbar(HomeScreen);
