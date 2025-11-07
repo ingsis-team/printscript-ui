@@ -22,6 +22,7 @@ import {CreateSnippet, CreateSnippetWithLang} from "../../utils/snippet.ts";
 import {ModalWrapper} from "../common/ModalWrapper.tsx";
 import {useCreateSnippet, useGetFileTypes} from "../../utils/queries.tsx";
 import {queryClient} from "../../App.tsx";
+import {useSnackbarContext} from "../../contexts/snackbarContext.tsx";
 
 export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     open: boolean,
@@ -31,20 +32,39 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     const [language, setLanguage] = useState(defaultSnippet?.language ?? "printscript");
     const [code, setCode] = useState(defaultSnippet?.content ?? "");
     const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "")
+    const [description, setDescription] = useState("")
+    const {createSnackbar} = useSnackbarContext();
     const {mutateAsync: createSnippet, isLoading: loadingSnippet} = useCreateSnippet({
-        onSuccess: () => queryClient.invalidateQueries('listSnippets')
+        onSuccess: () => {
+            queryClient.invalidateQueries('listSnippets')
+            createSnackbar('success', 'Snippet created successfully!')
+        }
     })
     const {data: fileTypes} = useGetFileTypes();
 
     const handleCreateSnippet = async () => {
-        const newSnippet: CreateSnippet = {
-            name: snippetName,
-            content: code,
-            language: language,
-            extension: fileTypes?.find((f) => f.language === language)?.extension ?? "prs"
+        try {
+            const newSnippet: CreateSnippet = {
+                name: snippetName,
+                content: code,
+                language: language,
+                extension: fileTypes?.find((f) => f.language === language)?.extension ?? "prs"
+            }
+            await createSnippet(newSnippet);
+            onClose();
+        } catch (error: any) {
+            // Handle different types of errors
+            const errorMessage = error.message || 'Failed to create snippet'
+            if (errorMessage.includes('syntax') || errorMessage.includes('sintaxis') || errorMessage.includes('Invalid snippet syntax')) {
+                createSnackbar('error', `Syntax validation failed: ${errorMessage}`)
+            } else if (errorMessage.includes('existe') || errorMessage.includes('exists')) {
+                createSnackbar('error', 'A snippet with this name already exists')
+            } else if (errorMessage.includes('empty') || errorMessage.includes('vacío')) {
+                createSnackbar('error', 'File cannot be empty')
+            } else {
+                createSnackbar('error', errorMessage)
+            }
         }
-        await createSnippet(newSnippet);
-        onClose();
     }
 
     useEffect(() => {
@@ -53,7 +73,12 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
             setLanguage(defaultSnippet?.language)
             setSnippetName(defaultSnippet?.name)
         }
-    }, [defaultSnippet]);
+        if (!open) {
+            setDescription("")
+            setCode("")
+            setSnippetName("")
+        }
+    }, [defaultSnippet, open]);
 
     return (
         <ModalWrapper open={open} onClose={onClose}>
@@ -87,7 +112,16 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                 flexDirection: 'column',
                 gap: '16px'
             }}>
-                <InputLabel htmlFor="name">Language</InputLabel>
+                <InputLabel htmlFor="description">Description (optional)</InputLabel>
+                <Input onChange={e => setDescription(e.target.value)} value={description} id="description"
+                       sx={{width: '50%'}}/>
+            </Box>
+            <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+            }}>
+                <InputLabel htmlFor="language">Language</InputLabel>
                 <Select
                     labelId="demo-simple-select-label"
                     id="demo-simple-select"

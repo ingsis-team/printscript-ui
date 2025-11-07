@@ -1,0 +1,2 @@
+let message: string = "Hello from file upload!";
+println(message);

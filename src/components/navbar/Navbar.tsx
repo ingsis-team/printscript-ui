@@ -2,6 +2,8 @@ import {AppBar, Box, Button, Container, Toolbar, Typography} from "@mui/material
 import {Code, Rule} from "@mui/icons-material";
 import {ReactNode} from "react";
 import {useLocation, useNavigate} from "react-router-dom";
+import {useAuth0} from "@auth0/auth0-react";
+import Logout from "../logout/Logout.tsx";
 
 type PageType = {
     title: string;
@@ -20,6 +22,7 @@ const pages: PageType[] = [{
 }];
 
 export const Navbar = () => {
+    const {isAuthenticated} = useAuth0();
     const location = useLocation();
     const navigate = useNavigate();
     return (
@@ -39,28 +42,32 @@ export const Navbar = () => {
                     >
                         Printscript
                     </Typography>
-                    <Box sx={{flexGrow: 1, display: {xs: 'none', md: 'flex'}, gap: '4px'}}>
-                        {pages.map((page) => (
-                            <Button
-                                key={page.title}
-                                onClick={() => navigate(`${page.path}`)}
-                                sx={{
-                                    my: 2,
-                                    color: 'white',
-                                    display: 'flex',
-                                    justifyContent: "center",
-                                    gap: "4px",
-                                    backgroundColor: location.pathname === page.path ? 'primary.light' : 'transparent',
-                                    "&:hover": {
-                                        backgroundColor: 'primary.dark'
-                                    }
-                                }}
-                            >
-                                {page.icon}
-                                <Typography>{page.title}</Typography>
-                            </Button>
-                        ))}
-                    </Box>
+                    {isAuthenticated ?
+                        <Box sx={{flexGrow: 1, display: {xs: 'none', md: 'flex', justifyContent: 'space-between'}, gap: '4px'}}>
+                            <Box sx={{flexGrow: 1, display: {xs: 'none', md: 'flex'}, gap: '4px'}}>
+                                {pages.map((page) => (
+                                    <Button
+                                        key={page.title}
+                                        onClick={() => navigate(`${page.path}`)}
+                                        sx={{
+                                            my: 2,
+                                            color: 'white',
+                                            display: 'flex',
+                                            justifyContent: "center",
+                                            gap: "4px",
+                                            backgroundColor: location.pathname === page.path ? 'primary.light' : 'transparent',
+                                            "&:hover": {
+                                                backgroundColor: 'primary.dark'
+                                            }
+                                        }}
+                                    >
+                                        {page.icon}
+                                        <Typography>{page.title}</Typography>
+                                    </Button>
+                                ))}
+                            </Box>
+                            <Logout/>
+                    </Box> : <></>}
                 </Toolbar>
             </Container>
         </AppBar>
