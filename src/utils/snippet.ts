@@ -23,7 +23,9 @@ export type UpdateSnippet = {
 
 export type Snippet = CreateSnippet & {
     id: string
-} & SnippetStatus
+} & SnippetStatus & {
+    description?: string;
+}
 
 type SnippetStatus = {
     compliance: ComplianceEnum;

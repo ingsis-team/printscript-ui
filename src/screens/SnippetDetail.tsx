@@ -145,6 +145,52 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             <CircularProgress/>
           </>) : <>
             <Typography variant="h4" fontWeight={"bold"}>{snippet?.name ?? "Snippet"}</Typography>
+            
+            {/* Snippet Metadata */}
+            <Box display="flex" flexDirection="column" gap={1} mb={2} p={2} sx={{ backgroundColor: 'rgba(0, 0, 0, 0.02)', borderRadius: 1 }}>
+              {snippet?.description && (
+                <Typography variant="body1" color="text.secondary">
+                  <strong>Description:</strong> {snippet.description}
+                </Typography>
+              )}
+              <Box display="flex" flexDirection="row" gap={2} flexWrap="wrap">
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Language:</strong> {snippet?.language ?? 'Unknown'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Author:</strong> {snippet?.author ?? 'Unknown'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Status:</strong> 
+                  <span style={{ 
+                    color: snippet?.compliance === 'compliant' ? 'green' : 
+                           snippet?.compliance === 'not-compliant' || snippet?.compliance === 'failed' ? 'red' : 'orange',
+                    fontWeight: 'bold',
+                    marginLeft: '4px'
+                  }}>
+                    {snippet?.compliance === 'compliant' ? 'Valid' : 
+                     snippet?.compliance === 'not-compliant' ? 'Not Compliant' :
+                     snippet?.compliance === 'failed' ? 'Failed' : 'Pending'}
+                  </span>
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Linting Errors Section */}
+            {snippet?.compliance && (snippet.compliance === 'not-compliant' || snippet.compliance === 'failed') && (
+              <Box mb={2} p={2} sx={{ backgroundColor: 'rgba(211, 47, 47, 0.1)', borderRadius: 1, border: '1px solid rgba(211, 47, 47, 0.3)' }}>
+                <Typography variant="h6" color="error" gutterBottom>
+                  ⚠️ Linting Issues Detected
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  This snippet has failed linting rules. Please review the code and fix the issues.
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  <strong>Compliance Status:</strong> {snippet.compliance === 'not-compliant' ? 'Not Compliant' : 'Failed'}
+                </Typography>
+              </Box>
+            )}
+
             <Box display="flex" flexDirection="row" gap="8px" padding="8px">
               <Tooltip title={"Share"}>
                 <IconButton onClick={() => setShareModalOppened(true)}>

@@ -296,6 +296,7 @@ export class RealSnippetOperations implements SnippetOperations {
         return {
             id: String(backendSnippet.id),
             name: backendSnippet.name,
+            description: backendSnippet.description || '',
             content: backendSnippet.content,
             language: language,
             extension: this.getExtensionFromLanguage(language),
