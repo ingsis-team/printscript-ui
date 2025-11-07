@@ -98,7 +98,7 @@ export class SnippetOperationsImpl implements SnippetOperations{
         return Promise.resolve([]);
     }
 
-    async getUserFriends(name?: string, page?: number, pageSize?: number): Promise<PaginatedUsers> {
+    async getUserFriends(page?: number, pageSize?: number, name?: string): Promise<PaginatedUsers> {
         console.log(`Implementar: ${name} ${page} ${pageSize}`);
         throw new Error("Método no implementado");
     }
@@ -128,8 +128,8 @@ export class SnippetOperationsImpl implements SnippetOperations{
         return Promise.resolve("");
     }
 
-    async testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult> {
-        console.log(`Implementar: ${testCase}`);
+    async testSnippet(id: string, envVars: string): Promise<TestCaseResult> {
+        console.log(`Implementar: ${id} ${envVars}`);
         throw new Error("Método no implementado");
     }
 }

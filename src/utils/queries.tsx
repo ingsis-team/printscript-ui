@@ -35,8 +35,8 @@ export const useUpdateSnippetById = ({onSuccess, onError}: {onSuccess: () => voi
     );
 };
 
-export const useGetUsers = (page: number = 0, pageSize: number = 10) => {
-    return useQuery<PaginatedUsers, Error>(['users',page, pageSize], () => snippetOperations.getUserFriends(page, pageSize));
+export const useGetUsers = (page: number = 0, pageSize: number = 10, name?: string) => {
+    return useQuery<PaginatedUsers, Error>(['users', name, page, pageSize], () => snippetOperations.getUserFriends(page, pageSize, name));
 };
 
 export const useShareSnippet = () => {
@@ -51,7 +51,7 @@ export const useGetTestCases = (snippetId: string) => {
 
 export const usePostTestCase = (snippetId: string) => {
     return useMutation<TestCase, Error, Partial<TestCase>>(
-        (tc) => snippetOperations.postTestCase({...tc, id: snippetId})
+        (tc) => snippetOperations.postTestCase({...tc, snippetId} as Partial<TestCase>)
     );
 };
 
@@ -67,9 +67,9 @@ export const useRemoveTestCase = ({onSuccess}: {onSuccess: () => void}) => {
 
 export type TestCaseResult = "success" | "fail"
 
-export const useTestSnippet = (id: string, envVars: string) => {
-    return useMutation<TestCaseResult, Error, Partial<TestCase>>(
-        () => snippetOperations.testSnippet(id, envVars)
+export const useTestSnippet = () => {
+    return useMutation<TestCaseResult, Error, { id: string; envVars: string }>(
+        ({id, envVars}) => snippetOperations.testSnippet(id, envVars)
     )
 }
 

@@ -113,7 +113,7 @@ export class FakeSnippetOperations implements SnippetOperations {
         }
     }
 
-    async getUserFriends(page: number = 0, pageSize: number = 10): Promise<PaginatedUsers> {
+    async getUserFriends(page: number = 0, pageSize: number = 10, name?: string): Promise<PaginatedUsers> {
         try {
             const response = await axios.get(
                 `${SNIPPET_URL}/users`, {
@@ -124,7 +124,8 @@ export class FakeSnippetOperations implements SnippetOperations {
                     },
                     params: {
                         pageNumber: page,
-                        pageSize
+                        pageSize,
+                        ...(name && { name })
                     }
                 })
             return response.data as PaginatedUsers;

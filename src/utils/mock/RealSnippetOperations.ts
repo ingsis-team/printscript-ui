@@ -92,15 +92,14 @@ export class RealSnippetOperations implements SnippetOperations {
             
             // Get permissions for current user to determine which snippets they can see
             const userId = getUserId();
-            let userPermissions: any[] = [];
             try {
-                const permissionsResponse = await axios.get(
+                await axios.get(
                     `${PERMISSION_SERVICE_URL}/user/${userId}`,
                     {
                         headers: getAuthHeaders(),
                     }
                 );
-                userPermissions = permissionsResponse.data || [];
+                // Permissions fetched successfully (for future use)
             } catch (permError) {
                 // If permission service fails, continue with snippets from current user
                 console.warn('Could not fetch permissions, showing only owned snippets');
@@ -160,7 +159,7 @@ export class RealSnippetOperations implements SnippetOperations {
         }
     }
 
-    async getUserFriends(page: number = 0, pageSize: number = 10): Promise<PaginatedUsers> {
+    async getUserFriends(page: number = 0, pageSize: number = 10, _name?: string): Promise<PaginatedUsers> {
         // TODO: Implement user service integration when available
         // For now, return mock data
         return {
@@ -210,27 +209,27 @@ export class RealSnippetOperations implements SnippetOperations {
         return [];
     }
 
-    async formatSnippet(snippetId: string, language: string): Promise<string> {
+    async formatSnippet(_snippetId: string, _language: string): Promise<string> {
         // TODO: Implement when format endpoint is available
         throw new Error('Format snippet not implemented yet');
     }
 
-    async getTestCases(snippetId: string): Promise<TestCase[]> {
+    async getTestCases(_snippetId: string): Promise<TestCase[]> {
         // TODO: Implement when test cases endpoint is available
         return [];
     }
 
-    async postTestCase(testCase: TestCase): Promise<TestCase> {
+    async postTestCase(_testCase: TestCase): Promise<TestCase> {
         // TODO: Implement when test cases endpoint is available
         throw new Error('Post test case not implemented yet');
     }
 
-    async removeTestCase(id: string): Promise<string> {
+    async removeTestCase(_id: string): Promise<string> {
         // TODO: Implement when test cases endpoint is available
         throw new Error('Remove test case not implemented yet');
     }
 
-    async testSnippet(id: string, envVars: string): Promise<TestCaseResult> {
+    async testSnippet(_id: string, _envVars: string): Promise<TestCaseResult> {
         // TODO: Implement when test execution endpoint is available
         throw new Error('Test snippet not implemented yet');
     }
