@@ -1,26 +1,18 @@
 import {AUTH0_USERNAME,AUTH0_PASSWORD} from "../../src/utils/constants";
 
 describe('Protected routes test', () => {
-  it('should redirect to login when accessing a protected route unauthenticated', () => {
+  it('should show login button when accessing a protected route unauthenticated', () => {
     // Visit the protected route
     cy.visit('/');
 
     cy.wait(1000)
 
-    // Check if the URL is redirected to the login page
-    cy.url().should('include', '/login');
+    // Check if the login button is displayed
+    cy.get('#login-button').should('exist');
+    cy.contains('Please login to access resources').should('exist');
   });
 
-  it('should display login content', () => {
-    // Visit the login page
-    cy.visit('/login');
-
-    // Look for text that is likely to appear on a login page
-    cy.contains('Log in').should('exist');
-    cy.contains('Password').should('exist'); // Adjust the text based on actual content
-  });
-
-  it('should not redirect to login when the user is already authenticated', () => {
+  it('should allow access when the user is already authenticated', () => {
     const AUTH0_USERNAME = Cypress.env("AUTH0_USERNAME")
     const AUTH0_PASSWORD = Cypress.env("AUTH0_PASSWORD")
     cy.loginToAuth0(AUTH0_USERNAME, AUTH0_PASSWORD)
@@ -29,8 +21,9 @@ describe('Protected routes test', () => {
 
     cy.wait(1000)
 
-    // Check if the URL is redirected to the login page
-    cy.url().should('not.include', '/login');
+    // Check that we can access the protected content (no login button)
+    cy.get('#login-button').should('not.exist');
+    cy.get('.MuiTypography-h6').should('have.text', 'Printscript');
   });
 
 })

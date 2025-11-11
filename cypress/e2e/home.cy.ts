@@ -28,7 +28,7 @@ describe('Home', () => {
 
     first10Snippets.should('have.length.greaterThan', 0)
 
-    first10Snippets.should('have.length.lessThan', 10)
+    first10Snippets.should('have.length.at.most', 10)
   })
 
   it('Can creat snippet find snippets by name', () => {
