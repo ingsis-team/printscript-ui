@@ -128,7 +128,7 @@ export const SnippetTable = (props: SnippetTableProps) => {
               </IconButton>
             </Box>
             <Button ref={popoverRef} variant="contained" disableRipple sx={{boxShadow: 0}}
-                    onClick={() => setPopoverMenuOpened(true)}>
+                    onClick={() => setPopoverMenuOpened(true)} data-testid="add-snippet-button">
               <Add/>
               Add Snippet
             </Button>
@@ -239,8 +239,8 @@ export const SnippetTable = (props: SnippetTableProps) => {
         <AddSnippetModal defaultSnippet={snippet} open={addModalOpened}
                          onClose={() => setAddModalOpened(false)}/>
         <Menu anchorEl={popoverRef.current} open={popoverMenuOpened} onClick={handleClickMenu}>
-          <MenuItem onClick={() => setAddModalOpened(true)}>Create snippet</MenuItem>
-          <MenuItem onClick={() => inputRef?.current?.click()}>Load snippet from file</MenuItem>
+          <MenuItem onClick={() => setAddModalOpened(true)} data-testid="create-snippet-menu-item">Create snippet</MenuItem>
+          <MenuItem onClick={() => inputRef?.current?.click()} data-testid="load-file-menu-item">Load snippet from file</MenuItem>
         </Menu>
         <input hidden type={"file"} ref={inputRef} multiple={false} data-testid={"upload-file-input"}
                onChange={e => handleLoadSnippet(e?.target)}/>

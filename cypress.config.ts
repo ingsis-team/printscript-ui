@@ -1,7 +1,8 @@
 import { defineConfig } from "cypress";
 import dotenv from 'dotenv'
-import {FRONTEND_URL} from "./src/utils/constants";
 dotenv.config()
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
 
 export default defineConfig({
   e2e: {
