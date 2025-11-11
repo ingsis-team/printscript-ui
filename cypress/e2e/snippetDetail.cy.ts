@@ -4,10 +4,9 @@ import {FakeSnippetStore} from "../../src/utils/mock/fakeSnippetStore";
 describe('Add snippet tests', () => {
   const fakeStore = new FakeSnippetStore()
   beforeEach(() => {
-    // cy.loginToAuth0(
-    //     AUTH0_USERNAME,
-    //     AUTH0_PASSWORD
-    // )
+    const AUTH0_USERNAME = Cypress.env("AUTH0_USERNAME")
+    const AUTH0_PASSWORD = Cypress.env("AUTH0_PASSWORD")
+    cy.loginToAuth0(AUTH0_USERNAME, AUTH0_PASSWORD)
     cy.intercept('GET', BACKEND_URL+"/snippets/*", {
       statusCode: 201,
       body: fakeStore.getSnippetById("1"),

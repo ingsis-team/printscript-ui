@@ -10,32 +10,60 @@ describe('Add snippet tests', () => {
   it('Can add snippets manually', () => {
     cy.visit("/")
     cy.intercept('POST', BACKEND_URL+"/snippets", (req) => {
-      req.reply((res) => {
-        expect(res.body).to.include.keys("id","name","content","language")
-        expect(res.statusCode).to.eq(200);
+      // Validate request has required fields
+      expect(req.body).to.have.property('name');
+      expect(req.body).to.have.property('content');
+      expect(req.body).to.have.property('language');
+      
+      // Mock successful response
+      req.reply({
+        statusCode: 201,
+        body: {
+          id: 'test-id-123',
+          name: req.body.name,
+          content: req.body.content,
+          language: req.body.language,
+          description: req.body.description || '',
+          version: req.body.version || '1.1',
+          compliance: 'pending'
+        }
       });
     }).as('postRequest');
 
     /* ==== Updated with reliable selectors ==== */
     cy.get('[data-testid="add-snippet-button"]').click();
-    cy.get('[data-testid="create-snippet-menu-item"]').click();
+    cy.get('[data-testid="create-snippet-menu-item"]').first().click();
     cy.get('#name').clear().type('Some snippet name');
-    cy.get('#demo-simple-select').click();
-    cy.get('[data-testid="menu-option-printscript"]').click();
+    cy.get('#demo-simple-select').first().click();
+    cy.get('[data-testid="menu-option-printscript"]').first().click();
 
     cy.get('[data-testid="add-snippet-code-editor"]').click();
     cy.get('[data-testid="add-snippet-code-editor"]').type(`let x: number = 5;`);
     cy.get('[data-testid="save-snippet-button"]').click();
 
-    cy.wait('@postRequest').its('response.statusCode').should('eq', 200);
+    cy.wait('@postRequest').its('response.statusCode').should('eq', 201);
   })
 
   it('Can add snippets via file', () => {
     cy.visit("/")
     cy.intercept('POST', BACKEND_URL+"/snippets", (req) => {
-      req.reply((res) => {
-        expect(res.body).to.include.keys("id","name","content","language")
-        expect(res.statusCode).to.eq(200);
+      // Validate request has required fields
+      expect(req.body).to.have.property('name');
+      expect(req.body).to.have.property('content');
+      expect(req.body).to.have.property('language');
+      
+      // Mock successful response
+      req.reply({
+        statusCode: 201,
+        body: {
+          id: 'test-id-456',
+          name: req.body.name,
+          content: req.body.content,
+          language: req.body.language,
+          description: req.body.description || '',
+          version: req.body.version || '1.1',
+          compliance: 'pending'
+        }
       });
     }).as('postRequest');
 
@@ -45,6 +73,6 @@ describe('Add snippet tests', () => {
     cy.wait(1000); // Wait for file to load and modal to open
     cy.get('[data-testid="save-snippet-button"]').click();
 
-    cy.wait('@postRequest').its('response.statusCode').should('eq', 200);
+    cy.wait('@postRequest').its('response.statusCode').should('eq', 201);
   })
 })

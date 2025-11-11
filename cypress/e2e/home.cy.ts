@@ -3,10 +3,9 @@ import {CreateSnippet} from "../../src/utils/snippet";
 
 describe('Home', () => {
   beforeEach(() => {
-    // cy.loginToAuth0( TODO DE-Comment when auth0 is ready
-    //     AUTH0_USERNAME,
-    //     AUTH0_PASSWORD
-    // )
+    const AUTH0_USERNAME = Cypress.env("AUTH0_USERNAME")
+    const AUTH0_PASSWORD = Cypress.env("AUTH0_PASSWORD")
+    cy.loginToAuth0(AUTH0_USERNAME, AUTH0_PASSWORD)
   })
   before(() => {
     process.env.FRONTEND_URL = Cypress.env("FRONTEND_URL");
