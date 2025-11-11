@@ -38,7 +38,7 @@ describe('Add snippet tests', () => {
     cy.get('[data-testid="menu-option-printscript"]').first().click();
 
     cy.get('[data-testid="add-snippet-code-editor"]').click();
-    cy.get('[data-testid="add-snippet-code-editor"]').type(`let x: number = 5;`);
+    cy.get('[data-testid="add-snippet-code-editor"]').type(`const snippet: String = "some snippet" \n print(snippet)`);
     cy.get('[data-testid="save-snippet-button"]').click();
 
     cy.wait('@postRequest').its('response.statusCode').should('eq', 201);
