@@ -3,11 +3,14 @@ import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from './snippe
 import {SnippetOperations} from "./snippetOperations.ts";
 import {PaginatedUsers} from "./users.ts";
 import {RealSnippetOperations} from "./mock/RealSnippetOperations.ts";
+import {FakeSnippetOperations} from "./mock/fakeSnippetOperations.ts";
 import {TestCase} from "../types/TestCase.ts";
 import {FileType} from "../types/FileType.ts";
 import {Rule} from "../types/Rule.ts";
 
-const snippetOperations: SnippetOperations = new RealSnippetOperations();
+// Toggle between Real and Fake operations here:
+// const snippetOperations: SnippetOperations = new FakeSnippetOperations(); // Use fake data (no Auth0 needed)
+const snippetOperations: SnippetOperations = new RealSnippetOperations(); // Use real backend (Auth0 required)
 
 export const useGetSnippets = (page: number = 0, pageSize: number = 10, snippetName?: string) => {
     return useQuery<PaginatedSnippets, Error>(['listSnippets', page, pageSize], () => snippetOperations.listSnippetDescriptors(page, pageSize,snippetName));
