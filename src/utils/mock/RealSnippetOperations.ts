@@ -27,7 +27,7 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async createSnippet(createSnippet: CreateSnippet): Promise<Snippet> {
         try {
-            // Use JSON endpoint for editor-based creation
+            // Backend expects snake_case
             const requestBody = {
                 name: createSnippet.name,
                 description: '', // Default empty description
