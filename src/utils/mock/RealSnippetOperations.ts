@@ -236,6 +236,12 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async deleteSnippet(id: string): Promise<string> {
         try {
+            // Check if user is OWNER before allowing delete
+            const isOwner = await this.checkOwnerPermission(id);
+            if (!isOwner) {
+                throw new Error('You do not have permission to delete this snippet. Only the owner can delete snippets.');
+            }
+
             await axios.delete(
                 `${SNIPPET_SERVICE_URL}/${id}`,
                 {
@@ -282,7 +288,27 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
             return response.data;
-        } catch (error) {
+        } catch (error: any) {
+            return false;
+        }
+    }
+
+    private async checkOwnerPermission(snippetId: string): Promise<boolean> {
+        try {
+            const userId = getUserId();
+            const response = await axios.get(
+                `${PERMISSION_SERVICE_URL}/check`,
+                {
+                    headers: getAuthHeaders(),
+                    params: {
+                        snippetId: parseInt(snippetId),
+                        userId,
+                    },
+                }
+            );
+            // Check if user has permission AND is OWNER
+            return response.data.has_permission && response.data.role === 'OWNER';
+        } catch (error: any) {
             return false;
         }
     }
