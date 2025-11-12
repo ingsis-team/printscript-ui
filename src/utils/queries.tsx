@@ -10,7 +10,7 @@ import {Rule} from "../types/Rule.ts";
 const snippetOperations: SnippetOperations = new RealSnippetOperations();
 
 export const useGetSnippets = (page: number = 0, pageSize: number = 10, snippetName?: string) => {
-    return useQuery<PaginatedSnippets, Error>(['listSnippets', page, pageSize], () => snippetOperations.listSnippetDescriptors(page, pageSize,snippetName));
+    return useQuery<PaginatedSnippets, Error>(['listSnippets', page, pageSize, snippetName], () => snippetOperations.listSnippetDescriptors(page, pageSize, snippetName));
 };
 
 export const useGetSnippetById = (id: string) => {
