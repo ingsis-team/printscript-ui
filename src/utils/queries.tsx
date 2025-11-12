@@ -39,9 +39,13 @@ export const useGetUsers = (page: number = 0, pageSize: number = 10, name?: stri
     return useQuery<PaginatedUsers, Error>(['users', name, page, pageSize], () => snippetOperations.getUserFriends(page, pageSize, name));
 };
 
-export const useShareSnippet = () => {
+export const useShareSnippet = ({onSuccess, onError}: {onSuccess?: () => void, onError?: (error: Error) => void} = {}) => {
     return useMutation<Snippet, Error, { snippetId: string; userId: string }>(
-        ({snippetId, userId}) => snippetOperations.shareSnippet(snippetId, userId)
+        ({snippetId, userId}) => snippetOperations.shareSnippet(snippetId, userId),
+        {
+            onSuccess,
+            onError,
+        }
     );
 };
 

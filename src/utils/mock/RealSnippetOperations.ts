@@ -159,26 +159,55 @@ export class RealSnippetOperations implements SnippetOperations {
         }
     }
 
-    async getUserFriends(page: number = 0, pageSize: number = 10, _name?: string): Promise<PaginatedUsers> {
-        // TODO: Implement user service integration when available
-        // For now, return mock data
-        return {
-            page,
-            page_size: pageSize,
-            count: 0,
-            users: []
-        };
+    async getUserFriends(page: number = 0, pageSize: number = 10, name?: string): Promise<PaginatedUsers> {
+        try {
+            const response = await axios.get(
+                `${SNIPPET_SERVICE_URL}/users`,
+                {
+                    headers: getAuthHeaders(),
+                    params: {
+                        search: name,
+                    },
+                }
+            );
+
+            // Backend returns List<Auth0UserDTO>
+            const backendUsers = Array.isArray(response.data) ? response.data : [];
+            
+            // Map backend users to frontend format
+            const users = backendUsers.map((u: any) => ({
+                id: u.user_id || u.email,
+                name: u.name || u.email,
+                username: u.username || u.email,
+            }));
+            
+            return {
+                page,
+                page_size: pageSize,
+                count: users.length,
+                users,
+            };
+        } catch (error: any) {
+            console.error('Error fetching users:', error);
+            // Return empty list on error
+            return {
+                page,
+                page_size: pageSize,
+                count: 0,
+                users: []
+            };
+        }
     }
 
     async shareSnippet(snippetId: string, userId: string): Promise<Snippet> {
         try {
-            // Create permission for the target user
+            // Use the snippet service's share endpoint
+            // Backend expects snake_case
             await axios.post(
-                PERMISSION_SERVICE_URL,
+                `${SNIPPET_SERVICE_URL}/share`,
                 {
                     snippet_id: parseInt(snippetId),
-                    user_id: userId,
-                    role: 'READ' // Default to read permission
+                    target_user_id: userId,
                 },
                 {
                     headers: {
@@ -195,7 +224,9 @@ export class RealSnippetOperations implements SnippetOperations {
             }
             return snippet;
         } catch (error: any) {
-            throw new Error(`Error sharing snippet: ${error.message}`);
+            // Extract error message from response
+            const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+            throw new Error(`Error sharing snippet: ${errorMessage}`);
         }
     }
 

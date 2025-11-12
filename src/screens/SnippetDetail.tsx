@@ -64,7 +64,15 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const {createSnackbar} = useSnackbarContext();
 
     const {data: snippet, isLoading} = useGetSnippetById(id);
-    const {mutate: shareSnippet, isLoading: loadingShare} = useShareSnippet()
+    const {mutate: shareSnippet, isLoading: loadingShare} = useShareSnippet({
+        onSuccess: () => {
+            setShareModalOppened(false)
+            createSnackbar('success', 'Snippet shared successfully!')
+        },
+        onError: (error: Error) => {
+            createSnackbar('error', error.message || 'Failed to share snippet')
+        }
+    })
     const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet(snippet?.id ?? "", snippet?.language ?? "")
     const {mutate: updateSnippet, isLoading: isUpdateSnippetLoading} = useUpdateSnippetById({
         onSuccess: () => {
