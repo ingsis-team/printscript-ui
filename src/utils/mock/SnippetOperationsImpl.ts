@@ -132,4 +132,9 @@ export class SnippetOperationsImpl implements SnippetOperations{
         console.log(`Implementar: ${id} ${envVars}`);
         throw new Error("Método no implementado");
     }
+
+    async executeSnippet(snippetId: string, inputs: string[]): Promise<{ outputs: string[], errors: string[] }> {
+        console.log(`Implementar: ${snippetId} ${inputs}`);
+        return Promise.resolve({ outputs: [], errors: [] });
+    }
 }
