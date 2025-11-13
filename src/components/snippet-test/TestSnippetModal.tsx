@@ -23,13 +23,11 @@ export const TestSnippetModal = ({open, onClose, snippetId}: TestSnippetModalPro
     
     const handleSaveTest = async (test: Partial<import("../../types/TestCase.ts").TestCase>) => {
         const savedTest = await postTestCase(test);
-        console.log('Test saved:', savedTest);
         // Refresh test cases list
         await queryClient.invalidateQueries(['testCases', snippetId]);
         // Wait a bit for the query to refetch
         setTimeout(() => {
             const currentTestCases = queryClient.getQueryData<typeof testCases>(['testCases', snippetId]);
-            console.log('Test cases after save:', currentTestCases);
             // Find the index of the newly saved test
             const newIndex = currentTestCases?.findIndex(tc => tc.id === savedTest.id) ?? 0;
             setValue(newIndex);

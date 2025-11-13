@@ -247,7 +247,6 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async getTestCases(snippetId: string): Promise<TestCase[]> {
         try {
-            console.log(`Fetching test cases for snippet ${snippetId}`);
             const response = await axios.get(
                 `${SNIPPET_SERVICE_URL}/${snippetId}/tests`,
                 {
@@ -255,27 +254,15 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
             
-            console.log('Raw test cases from backend:', response.data);
-            
             // Map backend test format to frontend format
             // Use "snippetId-testId" format for the test ID
-            const testCases = response.data.map((test: any) => {
-                console.log('Processing test:', test);
-                console.log('test.expected_outputs:', test.expected_outputs);
-                console.log('test.expectedOutputs:', test.expectedOutputs);
-                console.log('Type of expected_outputs:', typeof test.expected_outputs);
-                
-                return {
-                    id: `${snippetId}-${test.id}`,
-                    name: test.name,
-                    input: test.inputs || [],
-                    output: test.expected_outputs || test.expectedOutputs || [],
-                    snippetId: snippetId,
-                };
-            });
-            
-            console.log('Mapped test cases:', testCases);
-            return testCases;
+            return response.data.map((test: any) => ({
+                id: `${snippetId}-${test.id}`,
+                name: test.name,
+                input: test.inputs || [],
+                output: test.expected_outputs || test.expectedOutputs || [],
+                snippetId: snippetId,
+            }));
         } catch (error: any) {
             console.error('Error fetching test cases:', error);
             return [];
@@ -284,7 +271,6 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async postTestCase(testCase: Partial<TestCase>): Promise<TestCase> {
         try {
-            console.log('Creating test case:', testCase);
             // Backend expects snake_case
             const requestBody = {
                 name: testCase.name,
@@ -292,7 +278,6 @@ export class RealSnippetOperations implements SnippetOperations {
                 expected_outputs: testCase.output || [],
                 expected_status: 'VALID', // Default status
             };
-            console.log('Request body:', requestBody);
 
             const response = await axios.post(
                 `${SNIPPET_SERVICE_URL}/${testCase.snippetId}/tests`,
@@ -305,19 +290,14 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
 
-            console.log('Response from backend:', response.data);
-
-            const savedTest = {
+            return {
                 id: `${testCase.snippetId}-${response.data.id}`,
                 name: response.data.name,
                 input: response.data.inputs || [],
                 output: response.data.expected_outputs || response.data.expectedOutputs || [],
                 snippetId: testCase.snippetId!,
             };
-            console.log('Mapped test case:', savedTest);
-            return savedTest;
         } catch (error: any) {
-            console.error('Error creating test case:', error);
             const errorMessage = error.response?.data?.message || error.message;
             throw new Error(`Error creating test case: ${errorMessage}`);
         }
