@@ -7,7 +7,7 @@ import {TestCaseResult} from "../queries.tsx";
 import {FileType} from "../../types/FileType.ts";
 import {Rule} from "../../types/Rule.ts";
 import axios from 'axios';
-import {BACKEND_URL} from '../constants.ts';
+import {BACKEND_URL, PRINTSCRIPT_SERVICE_URL} from '../constants.ts';
 
 const getToken = () => localStorage.getItem('token') || '';
 const getUserId = () => localStorage.getItem('userId') || '';
@@ -231,18 +231,93 @@ export class RealSnippetOperations implements SnippetOperations {
     }
 
     async getFormatRules(): Promise<Rule[]> {
-        // TODO: Implement when format rules endpoint is available
-        return [];
+        try {
+            const userId = getUserId();
+            const correlationId = crypto.randomUUID();
+            const response = await axios.get(
+                `${PRINTSCRIPT_SERVICE_URL}/format/${userId}`,
+                {
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Correlation-id': correlationId,
+                    },
+                }
+            );
+            
+            // Map backend rules to frontend format
+            return this.mapBackendRulesToFrontend(response.data);
+        } catch (error: any) {
+            console.error('Error fetching format rules:', error);
+            return [];
+        }
     }
 
     async getLintingRules(): Promise<Rule[]> {
-        // TODO: Implement when linting rules endpoint is available
-        return [];
+        try {
+            const userId = getUserId();
+            const correlationId = crypto.randomUUID();
+            const response = await axios.get(
+                `${PRINTSCRIPT_SERVICE_URL}/lint/${userId}`,
+                {
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Correlation-id': correlationId,
+                    },
+                }
+            );
+            
+            // Map backend rules to frontend format
+            return this.mapBackendRulesToFrontend(response.data);
+        } catch (error: any) {
+            console.error('Error fetching linting rules:', error);
+            return [];
+        }
     }
 
-    async formatSnippet(_snippetId: string, _language: string): Promise<string> {
-        // TODO: Implement when format endpoint is available
-        throw new Error('Format snippet not implemented yet');
+    async formatSnippet(snippetId: string, language: string): Promise<string> {
+        try {
+            // Get the snippet first to get its content
+            const snippet = await this.getSnippetById(snippetId);
+            if (!snippet) {
+                throw new Error('Snippet not found');
+            }
+
+            const userId = getUserId();
+            const correlationId = crypto.randomUUID();
+
+            // Build the request according to SnippetDTO format
+            // Service expects lowercase "printscript", not "PRINTSCRIPT"
+            const requestBody = {
+                correlationId,
+                snippetId,
+                language: language.toLowerCase(), // printscript
+                version: '1.1',
+                input: snippet.content,
+                userId,
+            };
+
+            const response = await axios.post(
+                `${PRINTSCRIPT_SERVICE_URL}/format`,
+                requestBody,
+                {
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            // Return the formatted code from SnippetOutputDTO
+            // Backend returns: { snippet: string, correlationId: UUID, snippetId: string }
+            const formattedCode = response.data.snippet || response.data.string || response.data.output;
+            if (typeof formattedCode !== 'string') {
+                throw new Error('Invalid response format: formatted code is not a string');
+            }
+            return formattedCode;
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.message || error.message;
+            throw new Error(`Error formatting snippet: ${errorMessage}`);
+        }
     }
 
     async getTestCases(snippetId: string): Promise<TestCase[]> {
@@ -399,13 +474,71 @@ export class RealSnippetOperations implements SnippetOperations {
     }
 
     async modifyFormatRule(newRules: Rule[]): Promise<Rule[]> {
-        // TODO: Implement when format rules endpoint is available
-        return newRules;
+        try {
+            const userId = getUserId();
+            const correlationId = crypto.randomUUID();
+            
+            // Map frontend rules to backend format
+            const backendRules = this.mapFrontendRulesToBackend(newRules);
+            
+            // Build ChangeRulesDTO
+            const requestBody = {
+                userId,
+                rules: backendRules,
+                snippets: [], // Empty array as we're just updating rules
+                correlationId,
+            };
+            
+            await axios.put(
+                `${PRINTSCRIPT_SERVICE_URL}/redis/format`,
+                requestBody,
+                {
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+            
+            return newRules;
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.message || error.message;
+            throw new Error(`Error updating format rules: ${errorMessage}`);
+        }
     }
 
     async modifyLintingRule(newRules: Rule[]): Promise<Rule[]> {
-        // TODO: Implement when linting rules endpoint is available
-        return newRules;
+        try {
+            const userId = getUserId();
+            const correlationId = crypto.randomUUID();
+            
+            // Map frontend rules to backend format
+            const backendRules = this.mapFrontendRulesToBackend(newRules);
+            
+            // Build ChangeRulesDTO
+            const requestBody = {
+                userId,
+                rules: backendRules,
+                snippets: [], // Empty array as we're just updating rules
+                correlationId,
+            };
+            
+            await axios.put(
+                `${PRINTSCRIPT_SERVICE_URL}/redis/lint`,
+                requestBody,
+                {
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+            
+            return newRules;
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.message || error.message;
+            throw new Error(`Error updating linting rules: ${errorMessage}`);
+        }
     }
 
     // Helper methods
@@ -525,6 +658,28 @@ export class RealSnippetOperations implements SnippetOperations {
         
         // Fallback to generic error message
         return error.message || 'An unexpected error occurred';
+    }
+
+    private mapBackendRulesToFrontend(backendRules: any[]): Rule[] {
+        // Map backend rules format to frontend Rule type
+        // Backend returns: { id, name, isActive, value }
+        return backendRules.map(rule => ({
+            id: rule.id || String(Math.random()),
+            name: rule.name,
+            isActive: rule.isActive ?? false,
+            value: rule.value ?? null,
+        }));
+    }
+
+    private mapFrontendRulesToBackend(frontendRules: Rule[]): any[] {
+        // Map frontend Rule type to backend format for ChangeRulesDTO
+        // Backend Rule DTO requires: { id, name, isActive, value }
+        return frontendRules.map(rule => ({
+            id: rule.id,
+            name: rule.name,
+            isActive: rule.isActive,
+            value: rule.value ?? null,
+        }));
     }
 }
 

@@ -101,7 +101,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     }, [snippet]);
 
     useEffect(() => {
-        if (formatSnippetData) {
+        if (formatSnippetData && typeof formatSnippetData === 'string') {
             setCode(formatSnippetData)
         }
     }, [formatSnippetData])
@@ -218,7 +218,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
               {/*</Tooltip>*/}
               {/* TODO: we can implement a live mode*/}
               <Tooltip title={"Format"}>
-                <IconButton onClick={() => formatSnippet(code)} disabled={isFormatLoading}>
+                <IconButton onClick={() => formatSnippet()} disabled={isFormatLoading}>
                   <ReadMoreIcon />
                 </IconButton>
               </Tooltip>
@@ -241,10 +241,10 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             <Box display={"flex"} gap={2}>
               <Bòx flex={1} height={"fit-content"} overflow={"none"} minHeight={"500px"} bgcolor={'black'} color={'white'} code={code}>
                 <Editor
-                    value={code}
+                    value={code || ""}
                     padding={10}
-                    onValueChange={(code) => setCode(code)}
-                    highlight={(code) => highlight(code, languages.js, "javascript")}
+                    onValueChange={(code) => setCode(code || "")}
+                    highlight={(code) => highlight(code || "", languages.js, "javascript")}
                     maxLength={1000}
                     style={{
                       minHeight: "500px",
