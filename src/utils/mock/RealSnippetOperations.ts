@@ -615,8 +615,11 @@ export class RealSnippetOperations implements SnippetOperations {
         if (backendSnippet.status === 'INVALID') return 'not-compliant';
         if (backendSnippet.status === 'FAILED') return 'failed';
         
-        // If no status field, assume compliant since snippets are validated on create/update
-        // If validation fails, the snippet creation/update would have thrown an error
+        // If no status field:
+        // - Syntax validation happens on create/update, so snippets are always syntactically valid
+        // - Linting compliance is separate and not automatically checked
+        // - Default to 'compliant' since syntax validation passed (required for creation)
+        // - Linting can be checked manually via the linting endpoint if needed
         return 'compliant';
     }
 
