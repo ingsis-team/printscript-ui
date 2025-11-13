@@ -610,11 +610,14 @@ export class RealSnippetOperations implements SnippetOperations {
 
     private mapComplianceStatus(backendSnippet: any): 'pending' | 'failed' | 'not-compliant' | 'compliant' {
         // Map backend validation status to frontend compliance enum
-        // This will need to be adjusted based on actual backend response
+        // If backend has a status field, use it
         if (backendSnippet.status === 'VALIDATED') return 'compliant';
         if (backendSnippet.status === 'INVALID') return 'not-compliant';
         if (backendSnippet.status === 'FAILED') return 'failed';
-        return 'pending';
+        
+        // If no status field, assume compliant since snippets are validated on create/update
+        // If validation fails, the snippet creation/update would have thrown an error
+        return 'compliant';
     }
 
     private extractErrorMessage(error: any): string {
