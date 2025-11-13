@@ -297,6 +297,14 @@ export class FakeSnippetOperations implements SnippetOperations {
         }
     }
 
+    async executeSnippet(_snippetId: string, _inputs: string[]): Promise<{ outputs: string[], errors: string[] }> {
+        // Mock implementation for fake operations
+        return Promise.resolve({
+            outputs: ['Mock output'],
+            errors: [],
+        });
+    }
+
     async deleteSnippet(id: string): Promise<string> {
         try {
             const response = await axios.delete(

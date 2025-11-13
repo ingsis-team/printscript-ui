@@ -255,8 +255,8 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
               </Bòx>
             </Box>
             <Box pt={1} flex={1} marginTop={2}>
-              <Alert severity="info">Output</Alert>
-              <SnippetExecution />
+              <Alert severity="info">Interactive Execution</Alert>
+              <SnippetExecution snippetId={id} />
             </Box>
           </>
         }

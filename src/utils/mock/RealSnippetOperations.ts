@@ -344,6 +344,32 @@ export class RealSnippetOperations implements SnippetOperations {
         }
     }
 
+    async executeSnippet(snippetId: string, inputs: string[]): Promise<{ outputs: string[], errors: string[] }> {
+        try {
+            const response = await axios.post(
+                `${SNIPPET_SERVICE_URL}/${snippetId}/execute`,
+                { inputs },
+                {
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            return {
+                outputs: response.data.outputs || [],
+                errors: response.data.errors || [],
+            };
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.message || error.message;
+            return {
+                outputs: [],
+                errors: [errorMessage],
+            };
+        }
+    }
+
     async deleteSnippet(id: string): Promise<string> {
         try {
             // Check if user is OWNER before allowing delete
