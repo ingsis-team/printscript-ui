@@ -30,7 +30,7 @@ export class RealSnippetOperations implements SnippetOperations {
             // Backend expects snake_case
             const requestBody = {
                 name: createSnippet.name,
-                description: '', // Default empty description
+                description: createSnippet.description || '', // Use provided description or empty string
                 language: createSnippet.language.toUpperCase(), // Convert to uppercase enum
                 content: createSnippet.content,
                 version: '1.1', // Default version
