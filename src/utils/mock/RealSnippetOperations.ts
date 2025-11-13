@@ -245,24 +245,123 @@ export class RealSnippetOperations implements SnippetOperations {
         throw new Error('Format snippet not implemented yet');
     }
 
-    async getTestCases(_snippetId: string): Promise<TestCase[]> {
-        // TODO: Implement when test cases endpoint is available
-        return [];
+    async getTestCases(snippetId: string): Promise<TestCase[]> {
+        try {
+            console.log(`Fetching test cases for snippet ${snippetId}`);
+            const response = await axios.get(
+                `${SNIPPET_SERVICE_URL}/${snippetId}/tests`,
+                {
+                    headers: getAuthHeaders(),
+                }
+            );
+            
+            console.log('Raw test cases from backend:', response.data);
+            
+            // Map backend test format to frontend format
+            // Use "snippetId-testId" format for the test ID
+            const testCases = response.data.map((test: any) => {
+                console.log('Processing test:', test);
+                console.log('test.expected_outputs:', test.expected_outputs);
+                console.log('test.expectedOutputs:', test.expectedOutputs);
+                console.log('Type of expected_outputs:', typeof test.expected_outputs);
+                
+                return {
+                    id: `${snippetId}-${test.id}`,
+                    name: test.name,
+                    input: test.inputs || [],
+                    output: test.expected_outputs || test.expectedOutputs || [],
+                    snippetId: snippetId,
+                };
+            });
+            
+            console.log('Mapped test cases:', testCases);
+            return testCases;
+        } catch (error: any) {
+            console.error('Error fetching test cases:', error);
+            return [];
+        }
     }
 
-    async postTestCase(_testCase: TestCase): Promise<TestCase> {
-        // TODO: Implement when test cases endpoint is available
-        throw new Error('Post test case not implemented yet');
+    async postTestCase(testCase: Partial<TestCase>): Promise<TestCase> {
+        try {
+            console.log('Creating test case:', testCase);
+            // Backend expects snake_case
+            const requestBody = {
+                name: testCase.name,
+                inputs: testCase.input || [],
+                expected_outputs: testCase.output || [],
+                expected_status: 'VALID', // Default status
+            };
+            console.log('Request body:', requestBody);
+
+            const response = await axios.post(
+                `${SNIPPET_SERVICE_URL}/${testCase.snippetId}/tests`,
+                requestBody,
+                {
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            console.log('Response from backend:', response.data);
+
+            const savedTest = {
+                id: `${testCase.snippetId}-${response.data.id}`,
+                name: response.data.name,
+                input: response.data.inputs || [],
+                output: response.data.expected_outputs || response.data.expectedOutputs || [],
+                snippetId: testCase.snippetId!,
+            };
+            console.log('Mapped test case:', savedTest);
+            return savedTest;
+        } catch (error: any) {
+            console.error('Error creating test case:', error);
+            const errorMessage = error.response?.data?.message || error.message;
+            throw new Error(`Error creating test case: ${errorMessage}`);
+        }
     }
 
-    async removeTestCase(_id: string): Promise<string> {
-        // TODO: Implement when test cases endpoint is available
-        throw new Error('Remove test case not implemented yet');
+    async removeTestCase(id: string): Promise<string> {
+        try {
+            // Extract snippet ID and test ID from the id (format: "snippetId-testId")
+            const [snippetId, testId] = id.split('-');
+            
+            await axios.delete(
+                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testId}`,
+                {
+                    headers: getAuthHeaders(),
+                }
+            );
+            return id;
+        } catch (error: any) {
+            throw new Error(`Error deleting test case: ${error.message}`);
+        }
     }
 
-    async testSnippet(_id: string, _envVars: string): Promise<TestCaseResult> {
-        // TODO: Implement when test execution endpoint is available
-        throw new Error('Test snippet not implemented yet');
+    async testSnippet(id: string, envVars: string): Promise<TestCaseResult> {
+        try {
+            // Extract snippet ID and test ID
+            const [snippetId, testId] = id.split('-');
+            
+            const response = await axios.post(
+                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testId}/execute`,
+                { env_vars: envVars },
+                {
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            // Check if test passed
+            return response.data.passed ? 'success' : 'fail';
+        } catch (error: any) {
+            console.error('Error executing test:', error);
+            return 'fail';
+        }
     }
 
     async deleteSnippet(id: string): Promise<string> {

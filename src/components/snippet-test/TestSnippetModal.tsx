@@ -20,6 +20,22 @@ export const TestSnippetModal = ({open, onClose, snippetId}: TestSnippetModalPro
     const {mutateAsync: removeTestCase} = useRemoveTestCase({
         onSuccess: () => queryClient.invalidateQueries('testCases')
     });
+    
+    const handleSaveTest = async (test: Partial<import("../../types/TestCase.ts").TestCase>) => {
+        const savedTest = await postTestCase(test);
+        console.log('Test saved:', savedTest);
+        // Refresh test cases list
+        await queryClient.invalidateQueries(['testCases', snippetId]);
+        // Wait a bit for the query to refetch
+        setTimeout(() => {
+            const currentTestCases = queryClient.getQueryData<typeof testCases>(['testCases', snippetId]);
+            console.log('Test cases after save:', currentTestCases);
+            // Find the index of the newly saved test
+            const newIndex = currentTestCases?.findIndex(tc => tc.id === savedTest.id) ?? 0;
+            setValue(newIndex);
+        }, 100);
+        return savedTest;
+    };
 
     const handleChange = (_: SyntheticEvent, newValue: number) => {
         setValue(newValue);
@@ -38,21 +54,21 @@ export const TestSnippetModal = ({open, onClose, snippetId}: TestSnippetModalPro
                     aria-label="Vertical tabs example"
                     sx={{borderRight: 1, borderColor: 'divider'}}
                 >
-                    {testCases?.map((testCase) => (
-                        <Tab label={testCase.name}/>
+                    {testCases?.map((testCase, index) => (
+                        <Tab key={testCase.id || index} label={testCase.name}/>
                     ))}
                     <IconButton disableRipple onClick={() => setValue((testCases?.length ?? 0) + 1)}>
                         <AddRounded />
                     </IconButton>
                 </Tabs>
                 {testCases?.map((testCase, index) => (
-                    <TabPanel key={index} index={index} value={value} test={testCase} snippetId={snippetId}
-                              setTestCase={(tc) => postTestCase(tc)}
+                    <TabPanel key={testCase.id || index} index={index} value={value} test={testCase} snippetId={snippetId}
+                              setTestCase={handleSaveTest}
                               removeTestCase={(i) => removeTestCase(i)}
                     />
                 ))}
                 <TabPanel index={(testCases?.length ?? 0) + 1} value={value} snippetId={snippetId}
-                          setTestCase={(tc) => postTestCase(tc)}
+                          setTestCase={handleSaveTest}
                 />
             </Box>
         </ModalWrapper>

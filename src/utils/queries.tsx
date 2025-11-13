@@ -50,7 +50,7 @@ export const useShareSnippet = ({onSuccess, onError}: {onSuccess?: () => void, o
 };
 
 export const useGetTestCases = (snippetId: string) => {
-    return useQuery<TestCase[] | undefined, Error>(['testCases'], () => snippetOperations.getTestCases(snippetId), {});
+    return useQuery<TestCase[] | undefined, Error>(['testCases', snippetId], () => snippetOperations.getTestCases(snippetId), {});
 };
 
 export const usePostTestCase = (snippetId: string) => {
