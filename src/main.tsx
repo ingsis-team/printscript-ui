@@ -1,3 +1,8 @@
+// Polyfill for process object - must be before any imports
+if (typeof process === 'undefined') {
+  (window as any).process = { env: {} };
+}
+
 import React from 'react';
 import App from './App.tsx'
 import './index.css'
@@ -9,10 +14,12 @@ import {Auth0Provider} from "@auth0/auth0-react";
 createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <Auth0Provider
-            domain={import.meta.env.VITE_AUTH0_DOMAIN ?? ""}
+            domain={import.meta.env.VITE_AUTH0_DOMAIN?.replace(/^https?:\/\//, '') ?? ""}
             clientId={import.meta.env.VITE_AUTH0_CLIENT_ID ?? ""}
             authorizationParams={{
                 redirect_uri: window.location.origin
+                // audience removed - only include if you have an API configured in Auth0
+                // ...(import.meta.env.VITE_AUTH0_AUDIENCE ? { audience: import.meta.env.VITE_AUTH0_AUDIENCE } : {})
             }}
         >
             <PaginationProvider>
