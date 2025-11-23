@@ -18,8 +18,6 @@ RUN --mount=type=secret,id=VITE_AUTH0_DOMAIN \
     echo "VITE_AUTH0_CLIENT_ID=$(cat /run/secrets/VITE_AUTH0_CLIENT_ID)" >> .env && \
     echo "VITE_AUTH0_AUDIENCE=$(cat /run/secrets/VITE_AUTH0_AUDIENCE)" >> .env && \
     echo "BACKEND_URL=$(cat /run/secrets/BACKEND_URL)" >> .env && \
-    echo "VITE_PRINTSCRIPT_SERVICE_URL=$(cat /run/secrets/VITE_PRINTSCRIPT_SERVICE_URL)" >> .env && \
-    echo "VITE_FRONTEND_URL=$(cat /run/secrets/VITE_FRONTEND_URL)" >> .env && \
     npm run build && \
     rm -f .env
 
