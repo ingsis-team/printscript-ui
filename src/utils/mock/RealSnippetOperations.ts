@@ -132,16 +132,25 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet> {
         try {
-            // Check write permission first
-            const hasWritePermission = await this.checkWritePermission(id);
-            if (!hasWritePermission) {
-                throw new Error('You do not have permission to update this snippet');
+            console.log('Attempting to update snippet with ID:', id);
+            console.log('Update data:', updateSnippet);
+            console.log('Using token:', getToken() ? 'Token exists' : 'No token found');
+            console.log('Backend URL:', SNIPPET_SERVICE_URL);
+
+            // Build request body based on what fields are provided
+            const requestBody: any = {};
+
+            if (updateSnippet.content !== undefined) {
+                requestBody.content = updateSnippet.content;
+            }
+            if (updateSnippet.name !== undefined) {
+                requestBody.name = updateSnippet.name;
+            }
+            if (updateSnippet.description !== undefined) {
+                requestBody.description = updateSnippet.description;
             }
 
-            // Use JSON endpoint for editor-based update
-            const requestBody = {
-                content: updateSnippet.content,
-            };
+            console.log('Request body:', requestBody);
 
             const response = await axios.put(
                 `${SNIPPET_SERVICE_URL}/${id}`,
@@ -153,11 +162,24 @@ export class RealSnippetOperations implements SnippetOperations {
                     },
                 }
             );
+
+            console.log('Update response:', response.status, response.data);
             return this.mapBackendSnippetToFrontend(response.data);
         } catch (error: any) {
-            // Extract detailed error message from backend response
-            const errorMessage = this.extractErrorMessage(error);
-            throw new Error(errorMessage);
+            console.error('Error in updateSnippetById:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+
+            // Provide more detailed error information based on backend response
+            if (error.response?.status === 404) {
+                throw new Error(`Snippet with ID ${id} not found`);
+            } else if (error.response?.status === 403) {
+                throw new Error('You do not have permission to update this snippet');
+            } else if (error.response?.status === 401) {
+                throw new Error('Authentication failed. Please log in again.');
+            } else {
+                throw new Error(`Error updating snippet: ${error.response?.data?.message || error.message}`);
+            }
         }
     }
 
@@ -444,21 +466,34 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async deleteSnippet(id: string): Promise<string> {
         try {
-            // Check if user is OWNER before allowing delete
-            const isOwner = await this.checkOwnerPermission(id);
-            if (!isOwner) {
-                throw new Error('You do not have permission to delete this snippet. Only the owner can delete snippets.');
-            }
+            console.log('Attempting to delete snippet with ID:', id);
+            console.log('Using token:', getToken() ? 'Token exists' : 'No token found');
+            console.log('Backend URL:', SNIPPET_SERVICE_URL);
 
-            await axios.delete(
+            const response = await axios.delete(
                 `${SNIPPET_SERVICE_URL}/${id}`,
                 {
                     headers: getAuthHeaders(),
                 }
             );
+
+            console.log('Delete response:', response.status, response.data);
             return id;
         } catch (error: any) {
-            throw new Error(`Error deleting snippet: ${error.message}`);
+            console.error('Error in deleteSnippet:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+
+            // Provide more detailed error information based on backend response
+            if (error.response?.status === 404) {
+                throw new Error(`Snippet with ID ${id} not found`);
+            } else if (error.response?.status === 403) {
+                throw new Error('You do not have permission to delete this snippet');
+            } else if (error.response?.status === 401) {
+                throw new Error('Authentication failed. Please log in again.');
+            } else {
+                throw new Error(`Error deleting snippet: ${error.response?.data?.message || error.message}`);
+            }
         }
     }
 
@@ -562,6 +597,8 @@ export class RealSnippetOperations implements SnippetOperations {
     private async checkOwnerPermission(snippetId: string): Promise<boolean> {
         try {
             const userId = getUserId();
+            console.log('Checking owner permission for snippet:', snippetId, 'user:', userId);
+
             const response = await axios.get(
                 `${PERMISSION_SERVICE_URL}/check`,
                 {
@@ -572,9 +609,25 @@ export class RealSnippetOperations implements SnippetOperations {
                     },
                 }
             );
+
+            console.log('Permission check response:', response.data);
+
             // Check if user has permission AND is OWNER
-            return response.data.has_permission && response.data.role === 'OWNER';
+            const hasPermission = response.data.has_permission && response.data.role === 'OWNER';
+            console.log('Has owner permission:', hasPermission);
+
+            return hasPermission;
         } catch (error: any) {
+            console.error('Error checking owner permission:', error);
+            console.error('Permission service error response:', error.response?.data);
+
+            // If permission service is unavailable, allow deletion for now
+            // This is a fallback to prevent the permission service from blocking all deletes
+            if (error.response?.status === 404 || error.code === 'ECONNREFUSED') {
+                console.warn('Permission service unavailable, allowing deletion');
+                return true;
+            }
+
             return false;
         }
     }

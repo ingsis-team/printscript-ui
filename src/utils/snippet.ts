@@ -19,10 +19,11 @@ export type CreateSnippet = {
 export type CreateSnippetWithLang = CreateSnippet & { language: string }
 
 export type UpdateSnippet = {
-    content: string
+    content?: string;
+    name?: string;
+    description?: string;
 }
 
-// Tipo que coincide exactamente con la respuesta de la API
 export type BackendSnippet = {
     id: string;
     name: string;
