@@ -9,8 +9,17 @@ import {Rule} from "../types/Rule.ts";
 
 const snippetOperations: SnippetOperations = new RealSnippetOperations();
 
-export const useGetSnippets = (page: number = 0, pageSize: number = 10, snippetName?: string) => {
-    return useQuery<PaginatedSnippets, Error>(['listSnippets', page, pageSize, snippetName], () => snippetOperations.listSnippetDescriptors(page, pageSize, snippetName));
+export const useGetSnippets = (page: number = 0, pageSize: number = 10, snippetName?: string, tokenReady?: boolean) => {
+    const getToken = () => localStorage.getItem('token') || '';
+    return useQuery<PaginatedSnippets, Error>(
+        ['listSnippets', page, pageSize, snippetName, tokenReady],
+        () => snippetOperations.listSnippetDescriptors(page, pageSize, snippetName),
+        {
+            enabled: !!getToken() && tokenReady !== false, // Solo ejecutar cuando hay token disponible y tokenReady es true
+            retry: 1,
+            staleTime: 1000 * 60 * 5, // 5 minutos
+        }
+    );
 };
 
 export const useGetSnippetById = (id: string) => {

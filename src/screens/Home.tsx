@@ -25,17 +25,23 @@ const HomeScreen = () => {
     const [validityFilter, setValidityFilter] = useState<string>('all');
     const [sortField, setSortField] = useState<SortField>('name');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+    const [tokenReady, setTokenReady] = useState(false);
     const {page, page_size, count, handleChangeCount} = usePaginationContext()
-    const { data, isLoading } = useGetSnippets(page, page_size, snippetName);
+    const { data, isLoading } = useGetSnippets(page, page_size, snippetName, tokenReady);
     const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently, user } = useAuth0()
 
     useEffect(() => {
-        if (isAuthenticated) {
+        if (isAuthenticated && !tokenReady) {
             getAccessTokenSilently()
-                .then((token) => {localStorage.setItem('token', token)})
-                .catch((error) => {console.error("Error al obtener el token:", error)})
+                .then((token) => {
+                    localStorage.setItem('token', token);
+                    setTokenReady(true);
+                })
+                .catch((error) => {
+                    console.error("Error al obtener el access token:", error);
+                })
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, tokenReady, getAccessTokenSilently]);
 
   useEffect(() => {
     if (data?.count && data.count != count) {

@@ -22,16 +22,29 @@ export type UpdateSnippet = {
     content: string
 }
 
-export type Snippet = CreateSnippet & {
-    id: string
-} & SnippetStatus & {
-    description?: string;
+// Tipo que coincide exactamente con la respuesta de la API
+export type BackendSnippet = {
+    id: string;
+    name: string;
+    description: string;
+    language: string;
+    content: string;
+    user_id: string;
+    version: string;
+    created_at: string;
+    updated_at: string;
 }
 
-type SnippetStatus = {
-    compliance: ComplianceEnum;
+export type Snippet = CreateSnippet & {
+    id: string
     author: string;
+    compliance: ComplianceEnum;
+    created_at?: string;
+    updated_at?: string;
+    user_id?: string;
+    version?: string;
 }
+
 export type PaginatedSnippets = Pagination & {
     content: Snippet[]
 }

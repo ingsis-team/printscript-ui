@@ -9,16 +9,23 @@ import {Rule} from "../../types/Rule.ts";
 import axios from 'axios';
 import {BACKEND_URL, PRINTSCRIPT_SERVICE_URL} from '../constants.ts';
 
-const getToken = () => localStorage.getItem('token') || '';
+const getToken = () => {
+    const token = localStorage.getItem('token') || '';
+    return token;
+};
 const getUserId = () => localStorage.getItem('userId') || '';
 
-const SNIPPET_SERVICE_URL = `${BACKEND_URL}/snippets`;
+const SNIPPET_SERVICE_URL = `${BACKEND_URL}/api/snippets`;
 const PERMISSION_SERVICE_URL = `${BACKEND_URL.replace('8080', '8081')}/permissions`;
 
-const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${getToken()}`,
-    'ngrok-skip-browser-warning': '69420'
-});
+const getAuthHeaders = () => {
+    const token = getToken();
+    const headers = {
+        'Authorization': `Bearer ${token}`,
+        'ngrok-skip-browser-warning': '69420'
+    };
+    return headers;
+};
 
 export class RealSnippetOperations implements SnippetOperations {
     constructor() {
@@ -75,49 +82,44 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
         try {
+            // Simplificar la llamada para que coincida exactamente con el curl que funciona
             const response = await axios.get(
                 SNIPPET_SERVICE_URL,
                 {
-                    headers: getAuthHeaders(),
-                    params: {
-                        page,
-                        size: pageSize,
-                        name: snippetName,
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json',
                     },
+                    withCredentials: true, // Para incluir cookies
                 }
             );
 
             // Backend returns List<SnippetResponseDTO>, not paginated
             const allSnippets = Array.isArray(response.data) ? response.data : [];
             
-            // Get permissions for current user to determine which snippets they can see
-            const userId = getUserId();
-            try {
-                await axios.get(
-                    `${PERMISSION_SERVICE_URL}/user/${userId}`,
-                    {
-                        headers: getAuthHeaders(),
-                    }
-                );
-                // Permissions fetched successfully (for future use)
-            } catch (permError) {
-                // If permission service fails, continue with snippets from current user
-                console.warn('Could not fetch permissions, showing only owned snippets');
-            }
-
             // Map backend snippets to frontend format
             const snippets = allSnippets.map((s: any) => this.mapBackendSnippetToFrontend(s));
             
-            // Apply pagination on frontend side (backend doesn't support it yet)
+            // Apply pagination and filtering on frontend side
+            let filteredSnippets = snippets;
+
+            // Apply name filter if provided
+            if (snippetName && snippetName.trim()) {
+                filteredSnippets = snippets.filter(snippet =>
+                    snippet.name.toLowerCase().includes(snippetName.toLowerCase())
+                );
+            }
+
+            // Apply pagination on frontend side
             const startIndex = page * pageSize;
             const endIndex = startIndex + pageSize;
-            const paginatedSnippets = snippets.slice(startIndex, endIndex);
-            
+            const paginatedSnippets = filteredSnippets.slice(startIndex, endIndex);
+
             return {
                 content: paginatedSnippets,
                 page,
                 page_size: pageSize,
-                count: snippets.length,
+                count: filteredSnippets.length,
             };
         } catch (error: any) {
             // More detailed error handling
@@ -188,7 +190,6 @@ export class RealSnippetOperations implements SnippetOperations {
                 users,
             };
         } catch (error: any) {
-            console.error('Error fetching users:', error);
             // Return empty list on error
             return {
                 page,
@@ -247,7 +248,6 @@ export class RealSnippetOperations implements SnippetOperations {
             // Map backend rules to frontend format
             return this.mapBackendRulesToFrontend(response.data);
         } catch (error: any) {
-            console.error('Error fetching format rules:', error);
             return [];
         }
     }
@@ -269,7 +269,6 @@ export class RealSnippetOperations implements SnippetOperations {
             // Map backend rules to frontend format
             return this.mapBackendRulesToFrontend(response.data);
         } catch (error: any) {
-            console.error('Error fetching linting rules:', error);
             return [];
         }
     }
@@ -339,7 +338,6 @@ export class RealSnippetOperations implements SnippetOperations {
                 snippetId: snippetId,
             }));
         } catch (error: any) {
-            console.error('Error fetching test cases:', error);
             return [];
         }
     }
@@ -414,7 +412,6 @@ export class RealSnippetOperations implements SnippetOperations {
             // Check if test passed
             return response.data.passed ? 'success' : 'fail';
         } catch (error: any) {
-            console.error('Error executing test:', error);
             return 'fail';
         }
     }
@@ -595,8 +592,12 @@ export class RealSnippetOperations implements SnippetOperations {
             content: backendSnippet.content,
             language: language,
             extension: this.getExtensionFromLanguage(language),
-            author: backendSnippet.user_id || backendSnippet.userId || 'Unknown',
+            author: backendSnippet.user_id || 'Unknown',
             compliance: this.mapComplianceStatus(backendSnippet),
+            created_at: backendSnippet.created_at,
+            updated_at: backendSnippet.updated_at,
+            user_id: backendSnippet.user_id,
+            version: backendSnippet.version,
         };
     }
 
@@ -688,4 +689,3 @@ export class RealSnippetOperations implements SnippetOperations {
         }));
     }
 }
-

@@ -17,9 +17,9 @@ createRoot(document.getElementById('root')!).render(
             domain={import.meta.env.VITE_AUTH0_DOMAIN?.replace(/^https?:\/\//, '') ?? ""}
             clientId={import.meta.env.VITE_AUTH0_CLIENT_ID ?? ""}
             authorizationParams={{
-                redirect_uri: window.location.origin
-                // audience removed - only include if you have an API configured in Auth0
-                // ...(import.meta.env.VITE_AUTH0_AUDIENCE ? { audience: import.meta.env.VITE_AUTH0_AUDIENCE } : {})
+                redirect_uri: window.location.origin,
+                audience: 'https://snippet-searcher/',
+                scope: 'openid profile email read:snippets write:snippets'
             }}
         >
             <PaginationProvider>

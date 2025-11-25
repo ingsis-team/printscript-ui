@@ -50,10 +50,27 @@ export const SnippetRow = ({snippet, onClick, ...props}: { snippet: Snippet, onC
     }
   };
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'N/A';
+    }
+  };
+
   return (
       <StyledTableRow onClick={onClick} sx={{backgroundColor: 'white', border: 0, height: '75px'}} {...props}>
         <StyledTableCell>{snippet.name}</StyledTableCell>
         <StyledTableCell>{snippet.language}</StyledTableCell>
+        <StyledTableCell>{formatDate(snippet.created_at)}</StyledTableCell>
         <StyledTableCell>{snippet.author}</StyledTableCell>
         <StyledTableCell>
           <Chip 
@@ -69,7 +86,7 @@ export const SnippetRow = ({snippet, onClick, ...props}: { snippet: Snippet, onC
 export const LoadingSnippetRow = () => {
   return (
       <TableRow sx={{height: '75px', padding: 0}}>
-        <StyledTableCell colSpan={4} sx={{
+        <StyledTableCell colSpan={5} sx={{
           padding: 0
         }}>
           <Skeleton height={"75px"} width={"100%"} variant={"rectangular"}/>
@@ -77,4 +94,3 @@ export const LoadingSnippetRow = () => {
       </TableRow>
   )
 }
-
