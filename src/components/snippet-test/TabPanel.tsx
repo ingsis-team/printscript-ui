@@ -1,6 +1,6 @@
 import {useState} from "react";
 import {TestCase} from "../../types/TestCase.ts";
-import {Autocomplete, Box, Button, Chip, TextField, Typography} from "@mui/material";
+import {Autocomplete, Box, Button, Chip, TextField, Typography, FormControl, InputLabel, Select, MenuItem} from "@mui/material";
 import {BugReport, Delete, Save} from "@mui/icons-material";
 import {useTestSnippet} from "../../utils/queries.tsx";
 
@@ -40,6 +40,21 @@ export const TabPanel = ({value, index, test: initialTest, snippetId, setTestCas
                         <Typography fontWeight="bold">Name</Typography>
                         <TextField size="small" value={testData?.name}
                                    onChange={(e) => setTestData({...testData, name: e.target.value})}/>
+                    </Box>
+                    <Box display="flex" flexDirection="column" gap={1}>
+                        <Typography fontWeight="bold">Expected Status</Typography>
+                        <FormControl size="small" fullWidth>
+                            <InputLabel id="expected-status-label">Expected Status</InputLabel>
+                            <Select
+                                labelId="expected-status-label"
+                                value={testData?.expected_status || 'VALID'}
+                                label="Expected Status"
+                                onChange={(e) => setTestData({...testData, expected_status: e.target.value as 'VALID' | 'INVALID'})}
+                            >
+                                <MenuItem value="VALID">VALID - Test should pass</MenuItem>
+                                <MenuItem value="INVALID">INVALID - Test should fail</MenuItem>
+                            </Select>
+                        </FormControl>
                     </Box>
                     <Box display="flex" flexDirection="column" gap={1}>
                         <Typography fontWeight="bold">Input</Typography>

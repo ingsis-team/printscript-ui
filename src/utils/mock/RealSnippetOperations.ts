@@ -99,7 +99,7 @@ export class RealSnippetOperations implements SnippetOperations {
             
             // Map backend snippets to frontend format
             const snippets = allSnippets.map((s: any) => this.mapBackendSnippetToFrontend(s));
-            
+
             // Apply pagination and filtering on frontend side
             let filteredSnippets = snippets;
 
@@ -395,6 +395,8 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async getTestCases(snippetId: string): Promise<TestCase[]> {
         try {
+            console.log('Fetching test cases for snippet ID:', snippetId);
+
             const response = await axios.get(
                 `${SNIPPET_SERVICE_URL}/${snippetId}/tests`,
                 {
@@ -402,16 +404,28 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
             
+            console.log('Test cases response:', response.data);
+
             // Map backend test format to frontend format
             // Use "snippetId-testId" format for the test ID
-            return response.data.map((test: any) => ({
-                id: `${snippetId}-${test.id}`,
-                name: test.name,
-                input: test.inputs || [],
-                output: test.expected_outputs || test.expectedOutputs || [],
-                snippetId: snippetId,
-            }));
+            const testCases = response.data.map((test: any) => {
+                const testCaseId = `${snippetId}-${test.id}`;
+                console.log('Creating test case with ID:', testCaseId, 'from snippetId:', snippetId, 'and testId:', test.id);
+
+                return {
+                    id: testCaseId,
+                    name: test.name,
+                    input: test.inputs || [],
+                    output: test.expected_outputs || test.expectedOutputs || [],
+                    snippetId: snippetId,
+                    expected_status: test.expected_status || 'VALID', // Map backend expected_status
+                };
+            });
+
+            console.log('Mapped test cases:', testCases);
+            return testCases;
         } catch (error: any) {
+            console.error('Error fetching test cases:', error);
             return [];
         }
     }
@@ -423,7 +437,7 @@ export class RealSnippetOperations implements SnippetOperations {
                 name: testCase.name,
                 inputs: testCase.input || [],
                 expected_outputs: testCase.output || [],
-                expected_status: 'VALID', // Default status
+                expected_status: testCase.expected_status || 'VALID', // Include expected_status
             };
 
             const response = await axios.post(
@@ -443,6 +457,7 @@ export class RealSnippetOperations implements SnippetOperations {
                 input: response.data.inputs || [],
                 output: response.data.expected_outputs || response.data.expectedOutputs || [],
                 snippetId: testCase.snippetId!,
+                expected_status: response.data.expected_status || 'VALID',
             };
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || error.message;
@@ -452,28 +467,67 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async removeTestCase(id: string): Promise<string> {
         try {
-            // Extract snippet ID and test ID from the id (format: "snippetId-testId")
-            const [snippetId, testId] = id.split('-');
-            
-            await axios.delete(
-                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testId}`,
-                {
-                    headers: getAuthHeaders(),
-                }
-            );
+            console.log('Attempting to remove test case with ID:', id);
+
+            // Extract snippet ID and test ID from the id
+            // Format: "snippetId-testId" where both are UUIDs with format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+            // We need to split at the correct position to preserve both UUIDs
+
+            // UUID format: 8-4-4-4-12 characters (36 total with hyphens)
+            // So we need to find the dash at position 36 (after the first complete UUID)
+            if (id.length < 73) { // 36 + 1 + 36 = 73 minimum length for two UUIDs
+                throw new Error(`Invalid test case ID format: ${id}. Expected format: snippetUUID-testUUID`);
+            }
+
+            const snippetId = id.substring(0, 36); // First 36 characters (complete UUID)
+            const testId = id.substring(37); // Rest after the dash (complete UUID)
+
+            console.log('Parsed snippetId:', snippetId);
+            console.log('Parsed testId:', testId);
+
+            // Correct URL for DELETE - should NOT have /execute
+            const deleteUrl = `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testId}`;
+            console.log('DELETE URL:', deleteUrl);
+
+            await axios.delete(deleteUrl, {
+                headers: getAuthHeaders(),
+            });
+
+            console.log('Test case deleted successfully');
             return id;
         } catch (error: any) {
-            throw new Error(`Error deleting test case: ${error.message}`);
+            console.error('Error deleting test case:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+            throw new Error(`Error deleting test case: ${error.response?.data?.message || error.message}`);
         }
     }
 
     async testSnippet(id: string, envVars: string): Promise<TestCaseResult> {
         try {
-            // Extract snippet ID and test ID
-            const [snippetId, testId] = id.split('-');
-            
+            console.log('Attempting to test snippet with ID:', id);
+
+            // Extract snippet ID and test ID from the id
+            // Format: "snippetId-testId" where both are UUIDs with format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+            // We need to split at the correct position to preserve both UUIDs
+
+            // UUID format: 8-4-4-4-12 characters (36 total with hyphens)
+            // So we need to find the dash at position 36 (after the first complete UUID)
+            if (id.length < 73) { // 36 + 1 + 36 = 73 minimum length for two UUIDs
+                throw new Error(`Invalid test case ID format: ${id}. Expected format: snippetUUID-testUUID`);
+            }
+
+            const snippetId = id.substring(0, 36); // First 36 characters (complete UUID)
+            const testId = id.substring(37); // Rest after the dash (complete UUID)
+
+            console.log('Parsed snippetId:', snippetId);
+            console.log('Parsed testId:', testId);
+
+            const executeUrl = `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testId}/execute`;
+            console.log('EXECUTE URL:', executeUrl);
+
             const response = await axios.post(
-                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testId}/execute`,
+                executeUrl,
                 { env_vars: envVars },
                 {
                     headers: {
@@ -483,9 +537,19 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
 
-            // Check if test passed
+            console.log('Test execution response:', response.data);
+
+            // Backend response includes:
+            // { passed: boolean, expectedStatus: string, expectedOutputs: string[],
+            //   actualOutputs: string[], executionFailed: boolean, message: string }
+
+            // The test is successful if it passed according to the backend logic
+            // This means:
+            // - If expected_status is VALID: test passes if snippet executed successfully and outputs match
+            // - If expected_status is INVALID: test passes if snippet failed as expected
             return response.data.passed ? 'success' : 'fail';
         } catch (error: any) {
+            console.error('Error executing test:', error);
             return 'fail';
         }
     }

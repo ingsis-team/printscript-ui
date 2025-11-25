@@ -4,4 +4,5 @@ export type TestCase = {
     input?: string[];
     output?: string[];
     snippetId?: string;
+    expected_status?: 'VALID' | 'INVALID';
 };
