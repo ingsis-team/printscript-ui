@@ -50,7 +50,7 @@ export const useUpdateSnippetById = ({onSuccess, onError}: {onSuccess: () => voi
     return useMutation<Snippet, Error, { id: string; updateSnippet: UpdateSnippet }>(
         ({id, updateSnippet}) => snippetOperations.updateSnippetById(id, updateSnippet),
         {
-            onSuccess: (data, variables) => {
+            onSuccess: (_data, variables) => {
                 // Invalidate both the specific snippet and the snippets list
                 queryClient.invalidateQueries(['snippet', variables.id]);
                 queryClient.invalidateQueries(['listSnippets']);
@@ -70,7 +70,7 @@ export const useShareSnippet = ({onSuccess, onError}: {onSuccess?: () => void, o
     return useMutation<Snippet, Error, { snippetId: string; userId: string }>(
         ({snippetId, userId}) => snippetOperations.shareSnippet(snippetId, userId),
         {
-            onSuccess: (data, variables) => {
+            onSuccess: (_data, variables) => {
                 // Invalidate the specific snippet to refresh shared status
                 queryClient.invalidateQueries(['snippet', variables.snippetId]);
                 queryClient.invalidateQueries(['listSnippets']);
@@ -103,7 +103,7 @@ export const useRemoveTestCase = ({onSuccess}: {onSuccess: () => void}) => {
     return useMutation<string, Error, string>(
         (id) => snippetOperations.removeTestCase(id),
         {
-            onSuccess: (data, id) => {
+            onSuccess: (_data, id) => {
                 // Extract snippet ID from the test case ID to invalidate the correct cache
                 const snippetId = id.substring(0, 36);
                 queryClient.invalidateQueries(['testCases', snippetId]);
@@ -120,7 +120,7 @@ export const useTestSnippet = () => {
     return useMutation<TestCaseResult, Error, { id: string; envVars: string }>(
         ({id, envVars}) => snippetOperations.testSnippet(id, envVars),
         {
-            onSuccess: (data, variables) => {
+            onSuccess: (_data, variables) => {
                 // Extract snippet ID to invalidate test cases cache (in case test results affect the display)
                 const snippetId = variables.id.substring(0, 36);
                 queryClient.invalidateQueries(['testCases', snippetId]);
@@ -183,7 +183,7 @@ export const useDeleteSnippet = ({onSuccess}: {onSuccess: () => void}) => {
     return useMutation<string, Error, string>(
         id => snippetOperations.deleteSnippet(id),
         {
-            onSuccess: (data, id) => {
+            onSuccess: (_data, id) => {
                 // Invalidate both the specific snippet and the snippets list
                 queryClient.invalidateQueries(['snippet', id]);
                 queryClient.invalidateQueries(['listSnippets']);

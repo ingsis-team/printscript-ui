@@ -691,7 +691,8 @@ export class RealSnippetOperations implements SnippetOperations {
 
     // Helper methods
 
-    private async checkWritePermission(snippetId: string): Promise<boolean> {
+    // @ts-expect-error - Unused but kept for potential future use
+    private async _checkWritePermission(snippetId: string): Promise<boolean> {
         try {
             const userId = getUserId();
             const response = await axios.get(
@@ -710,7 +711,8 @@ export class RealSnippetOperations implements SnippetOperations {
         }
     }
 
-    private async checkOwnerPermission(snippetId: string): Promise<boolean> {
+    // @ts-expect-error - Unused but kept for potential future use
+    private async _checkOwnerPermission(snippetId: string): Promise<boolean> {
         try {
             const userId = getUserId();
             console.log('Checking owner permission for snippet:', snippetId, 'user:', userId);

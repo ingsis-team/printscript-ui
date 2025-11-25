@@ -43,23 +43,28 @@ const paginatedUsers: PaginatedUsers = {
   users: [
     {
       name: "Chona",
-      id: "1"
+      id: "1",
+      username: "chona"
     },
     {
       name: "Fede",
-      id: "2"
+      id: "2",
+      username: "fede"
     },
     {
       name: "Mateo",
-      id: "3"
+      id: "3",
+      username: "mateo"
     },
     {
       name: "Tomi",
-      id: "4"
+      id: "4",
+      username: "tomi"
     },
     {
       name: "Berrets",
-      id: "5"
+      id: "5",
+      username: "berrets"
     }
   ]
 }
