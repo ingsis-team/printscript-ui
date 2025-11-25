@@ -308,9 +308,14 @@ export class RealSnippetOperations implements SnippetOperations {
     async getFormatRules(): Promise<Rule[]> {
         try {
             const userId = getUserId();
+            // Encode the userId to handle special characters like @ in emails
+            const encodedUserId = encodeURIComponent(userId);
             const correlationId = crypto.randomUUID();
+
+            console.log('Fetching format rules for userId:', userId, 'encoded:', encodedUserId);
+
             const response = await axios.get(
-                `${PRINTSCRIPT_SERVICE_URL}/format/${userId}`,
+                `${PRINTSCRIPT_SERVICE_URL}/format/${encodedUserId}`,
                 {
                     headers: {
                         ...getAuthHeaders(),
@@ -319,19 +324,30 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
             
+            console.log('Format rules response:', response.data);
+
             // Map backend rules to frontend format
             return this.mapBackendRulesToFrontend(response.data);
         } catch (error: any) {
-            return [];
+            console.error('Error fetching format rules:', error);
+            console.error('Error response:', error.response?.data);
+
+            // Return default format rules if there's an error
+            return this.getDefaultFormatRules();
         }
     }
 
     async getLintingRules(): Promise<Rule[]> {
         try {
             const userId = getUserId();
+            // Encode the userId to handle special characters like @ in emails
+            const encodedUserId = encodeURIComponent(userId);
             const correlationId = crypto.randomUUID();
+
+            console.log('Fetching linting rules for userId:', userId, 'encoded:', encodedUserId);
+
             const response = await axios.get(
-                `${PRINTSCRIPT_SERVICE_URL}/lint/${userId}`,
+                `${PRINTSCRIPT_SERVICE_URL}/lint/${encodedUserId}`,
                 {
                     headers: {
                         ...getAuthHeaders(),
@@ -340,10 +356,16 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
             
+            console.log('Linting rules response:', response.data);
+
             // Map backend rules to frontend format
             return this.mapBackendRulesToFrontend(response.data);
         } catch (error: any) {
-            return [];
+            console.error('Error fetching linting rules:', error);
+            console.error('Error response:', error.response?.data);
+
+            // Return default linting rules if there's an error
+            return this.getDefaultLintingRules();
         }
     }
 
@@ -357,6 +379,14 @@ export class RealSnippetOperations implements SnippetOperations {
 
             const userId = getUserId();
             const correlationId = crypto.randomUUID();
+
+            console.log('Attempting to format snippet:', {
+                snippetId,
+                userId,
+                language,
+                correlationId,
+                contentLength: snippet.content.length
+            });
 
             // Build the request according to SnippetDTO format
             // Service expects lowercase "printscript", not "PRINTSCRIPT"
@@ -377,8 +407,11 @@ export class RealSnippetOperations implements SnippetOperations {
                         ...getAuthHeaders(),
                         'Content-Type': 'application/json',
                     },
+                    timeout: 30000, // 30 second timeout
                 }
             );
+
+            console.log('Format response:', response.status, response.data);
 
             // Return the formatted code from SnippetOutputDTO
             // Backend returns: { snippet: string, correlationId: UUID, snippetId: string }
@@ -388,8 +421,20 @@ export class RealSnippetOperations implements SnippetOperations {
             }
             return formattedCode;
         } catch (error: any) {
-            const errorMessage = error.response?.data?.message || error.message;
-            throw new Error(`Error formatting snippet: ${errorMessage}`);
+            console.error('Error formatting snippet:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+
+            // Handle specific error cases
+            if (error.response?.status === 422) {
+                const errorMsg = error.response?.data?.message || 'The snippet content cannot be formatted. Please check the syntax.';
+                throw new Error(`Formatting Error: ${errorMsg}`);
+            } else if (error.response?.status === 500) {
+                throw new Error('Server error while formatting. The formatting service may be unavailable.');
+            } else {
+                const errorMessage = error.response?.data?.message || error.message;
+                throw new Error(`Error formatting snippet: ${errorMessage}`);
+            }
         }
     }
 
@@ -660,6 +705,9 @@ export class RealSnippetOperations implements SnippetOperations {
             const userId = getUserId();
             const correlationId = crypto.randomUUID();
             
+            console.log('Attempting to modify linting rules for userId:', userId, 'correlationId:', correlationId);
+            console.log('New rules:', newRules);
+
             // Map frontend rules to backend format
             const backendRules = this.mapFrontendRulesToBackend(newRules);
             
@@ -671,6 +719,8 @@ export class RealSnippetOperations implements SnippetOperations {
                 correlationId,
             };
             
+            console.log('Request body for linting rules update:', requestBody);
+
             await axios.put(
                 `${PRINTSCRIPT_SERVICE_URL}/redis/lint`,
                 requestBody,
@@ -679,13 +729,25 @@ export class RealSnippetOperations implements SnippetOperations {
                         ...getAuthHeaders(),
                         'Content-Type': 'application/json',
                     },
+                    timeout: 30000, // 30 second timeout
                 }
             );
             
+            console.log('Linting rules updated successfully');
             return newRules;
         } catch (error: any) {
-            const errorMessage = error.response?.data?.message || error.message;
-            throw new Error(`Error updating linting rules: ${errorMessage}`);
+            console.error('Error updating linting rules:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+
+            // Handle specific error cases
+            if (error.response?.status === 500) {
+                const errorMsg = error.response?.data?.message || 'Database error while updating linting rules. The service may be temporarily unavailable.';
+                throw new Error(`Server Error: ${errorMsg}`);
+            } else {
+                const errorMessage = error.response?.data?.message || error.message;
+                throw new Error(`Error updating linting rules: ${errorMessage}`);
+            }
         }
     }
 
@@ -858,5 +920,71 @@ export class RealSnippetOperations implements SnippetOperations {
             isActive: rule.isActive,
             value: rule.value ?? null,
         }));
+    }
+
+    private getDefaultFormatRules(): Rule[] {
+        // Return default PrintScript format rules
+        return [
+            {
+                id: '1',
+                name: 'enforce_spacing_around_equals',
+                isActive: true,
+                value: null,
+            },
+            {
+                id: '2',
+                name: 'enforce_spacing_before_colon_in_declaration',
+                isActive: true,
+                value: null,
+            },
+            {
+                id: '3',
+                name: 'enforce_spacing_after_colon_in_declaration',
+                isActive: true,
+                value: null,
+            },
+            {
+                id: '4',
+                name: 'if_brace_same_line',
+                isActive: true,
+                value: null,
+            },
+            {
+                id: '5',
+                name: 'println_line_breaks_before',
+                isActive: false,
+                value: 1,
+            },
+            {
+                id: '6',
+                name: 'println_line_breaks_after',
+                isActive: false,
+                value: 1,
+            },
+            {
+                id: '7',
+                name: 'assignment_line_breaks_before',
+                isActive: false,
+                value: 0,
+            },
+            {
+                id: '8',
+                name: 'assignment_line_breaks_after',
+                isActive: false,
+                value: 0,
+            }
+        ];
+    }
+
+    private getDefaultLintingRules(): Rule[] {
+        // Return default linting rules
+        return [
+            {
+                id: '1',
+                name: 'Default Lint Rule',
+                isActive: true,
+                value: null,
+            },
+        ];
     }
 }
