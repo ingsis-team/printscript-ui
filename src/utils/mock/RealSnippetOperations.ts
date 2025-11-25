@@ -929,25 +929,25 @@ export class RealSnippetOperations implements SnippetOperations {
                 id: '1',
                 name: 'enforce_spacing_around_equals',
                 isActive: true,
-                value: true,
+                value: null,
             },
             {
                 id: '2',
                 name: 'enforce_spacing_before_colon_in_declaration',
                 isActive: true,
-                value: true,
+                value: null,
             },
             {
                 id: '3',
                 name: 'enforce_spacing_after_colon_in_declaration',
                 isActive: true,
-                value: true,
+                value: null,
             },
             {
                 id: '4',
                 name: 'if_brace_same_line',
                 isActive: true,
-                value: true,
+                value: null,
             },
             {
                 id: '5',
@@ -983,9 +983,7 @@ export class RealSnippetOperations implements SnippetOperations {
                 id: '1',
                 name: 'Default Lint Rule',
                 isActive: true,
-                value: {
-                    // Add default lint rule properties as needed
-                },
+                value: null,
             },
         ];
     }
