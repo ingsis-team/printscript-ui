@@ -185,33 +185,62 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async getUserFriends(page: number = 0, pageSize: number = 10, name?: string): Promise<PaginatedUsers> {
         try {
+            console.log('Fetching all users for sharing');
+            console.log('Current user ID:', getUserId());
+
             const response = await axios.get(
                 `${SNIPPET_SERVICE_URL}/users`,
                 {
                     headers: getAuthHeaders(),
-                    params: {
-                        search: name,
-                    },
                 }
             );
+
+            console.log('Users response:', response.data);
 
             // Backend returns List<Auth0UserDTO>
             const backendUsers = Array.isArray(response.data) ? response.data : [];
             
-            // Map backend users to frontend format
-            const users = backendUsers.map((u: any) => ({
-                id: u.user_id || u.email,
-                name: u.name || u.email,
-                username: u.username || u.email,
-            }));
-            
+            // Get current user ID to filter out from the list
+            const currentUserId = getUserId();
+
+            // Map backend users to frontend format and filter out current user
+            const users = backendUsers
+                .filter((u: any) => u.user_id !== currentUserId) // Exclude current user
+                .map((u: any) => ({
+                    id: u.user_id,
+                    user_id: u.user_id,
+                    name: u.name || u.email,
+                    username: u.nickname || u.email,
+                    email: u.email,
+                    nickname: u.nickname,
+                    picture: u.picture,
+                }));
+
+            // Apply name filter if provided (search in email and nickname)
+            let filteredUsers = users;
+            if (name && name.trim()) {
+                filteredUsers = users.filter(user =>
+                    user.email?.toLowerCase().includes(name.toLowerCase()) ||
+                    user.nickname?.toLowerCase().includes(name.toLowerCase()) ||
+                    user.name?.toLowerCase().includes(name.toLowerCase())
+                );
+            }
+
+            // Apply pagination on frontend side
+            const startIndex = page * pageSize;
+            const endIndex = startIndex + pageSize;
+            const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+            console.log(`Filtered users (excluding current user ${currentUserId}):`, paginatedUsers);
+
             return {
                 page,
                 page_size: pageSize,
-                count: users.length,
-                users,
+                count: filteredUsers.length,
+                users: paginatedUsers,
             };
         } catch (error: any) {
+            console.error('Error fetching users:', error);
             // Return empty list on error
             return {
                 page,
@@ -224,12 +253,13 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async shareSnippet(snippetId: string, userId: string): Promise<Snippet> {
         try {
-            // Use the snippet service's share endpoint
-            // Backend expects snake_case
-            await axios.post(
+            console.log('Attempting to share snippet:', snippetId, 'with user:', userId);
+            console.log('Using token:', getToken() ? 'Token exists' : 'No token found');
+
+            const response = await axios.post(
                 `${SNIPPET_SERVICE_URL}/share`,
                 {
-                    snippet_id: parseInt(snippetId),
+                    snippet_id: snippetId, // Use string ID as in your curl
                     target_user_id: userId,
                 },
                 {
@@ -240,6 +270,13 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
 
+            console.log('Share response:', response.status, response.data);
+
+            // Check if sharing was successful based on the response format you provided
+            if (response.data.message && response.data.message.includes('exitosamente')) {
+                console.log('Snippet shared successfully');
+            }
+
             // Return the snippet
             const snippet = await this.getSnippetById(snippetId);
             if (!snippet) {
@@ -247,9 +284,24 @@ export class RealSnippetOperations implements SnippetOperations {
             }
             return snippet;
         } catch (error: any) {
-            // Extract error message from response
-            const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
-            throw new Error(`Error sharing snippet: ${errorMessage}`);
+            console.error('Error sharing snippet:', error);
+            console.error('Share error response:', error.response?.data);
+            console.error('Share error status:', error.response?.status);
+
+            // Provide more detailed error information based on backend response
+            if (error.response?.status === 404) {
+                throw new Error('Snippet or user not found');
+            } else if (error.response?.status === 403) {
+                throw new Error('You do not have permission to share this snippet');
+            } else if (error.response?.status === 401) {
+                throw new Error('Authentication failed. Please log in again.');
+            } else if (error.response?.status === 400) {
+                throw new Error('Invalid request. Please check the snippet ID and user ID.');
+            } else {
+                // Extract detailed error message from backend response
+                const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+                throw new Error(`Error sharing snippet: ${errorMessage}`);
+            }
         }
     }
 
