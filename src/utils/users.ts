@@ -5,6 +5,11 @@ export type PaginatedUsers = Pagination & {
 }
 
 export type User = {
+  id: string,
   name: string,
-  id: string
+  username: string,
+  email?: string,
+  nickname?: string,
+  picture?: string,
+  user_id?: string
 }

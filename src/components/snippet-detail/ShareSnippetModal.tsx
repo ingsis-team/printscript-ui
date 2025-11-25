@@ -14,13 +14,13 @@ export const ShareSnippetModal = (props: ShareSnippetModalProps) => {
   const {open, onClose, onShare, loading} = props
   const [name, setName] = useState("")
   const [debouncedName, setDebouncedName] = useState("")
-  const {data, isLoading} = useGetUsers(1, 5, debouncedName)
+  const {data, isLoading} = useGetUsers(0, 20, debouncedName) // Aumentar pageSize para mostrar más usuarios
   const [selectedUser, setSelectedUser] = useState<User | undefined>()
 
   useEffect(() => {
     const getData = setTimeout(() => {
       setDebouncedName(name)
-    }, 3000)
+    }, 500) // Reducir timeout para mejor UX
     return () => clearTimeout(getData)
   }, [name])
 
@@ -34,12 +34,22 @@ export const ShareSnippetModal = (props: ShareSnippetModalProps) => {
         <Divider/>
         <Box mt={2}>
           <Autocomplete
-              renderInput={(params) => <TextField {...params} label="Type the user's name"/>}
+              renderInput={(params) => <TextField {...params} label="Search by email or nickname"/>}
               options={data?.users ?? []}
               isOptionEqualToValue={(option, value) =>
                   option.id === value.id
               }
-              getOptionLabel={(option) => option.name}
+              getOptionLabel={(option) => `${option.email || option.name} (${option.nickname || option.username})`}
+              renderOption={(props, option) => (
+                  <Box component="li" {...props} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', py: 1 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                      {option.email || option.name}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      @{option.nickname || option.username}
+                    </Typography>
+                  </Box>
+              )}
               loading={isLoading}
               value={selectedUser}
               onInputChange={(_: unknown, newValue: string | null) => newValue && setName(newValue)}
@@ -47,7 +57,14 @@ export const ShareSnippetModal = (props: ShareSnippetModalProps) => {
           />
           <Box mt={4} display={"flex"} width={"100%"} justifyContent={"flex-end"}>
             <Button onClick={onClose} variant={"outlined"}>Cancel</Button>
-            <Button disabled={!selectedUser || loading} onClick={() => selectedUser && onShare(selectedUser?.id)} sx={{marginLeft: 2}} variant={"contained"}>Share</Button>
+            <Button
+              disabled={!selectedUser || loading}
+              onClick={() => selectedUser && onShare(selectedUser?.user_id || selectedUser?.id)}
+              sx={{marginLeft: 2}}
+              variant={"contained"}
+            >
+              Share
+            </Button>
           </Box>
         </Box>
       </ModalWrapper>

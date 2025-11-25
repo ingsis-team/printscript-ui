@@ -19,19 +19,33 @@ export type CreateSnippet = {
 export type CreateSnippetWithLang = CreateSnippet & { language: string }
 
 export type UpdateSnippet = {
-    content: string
+    content?: string;
+    name?: string;
+    description?: string;
+}
+
+export type BackendSnippet = {
+    id: string;
+    name: string;
+    description: string;
+    language: string;
+    content: string;
+    user_id: string;
+    version: string;
+    created_at: string;
+    updated_at: string;
 }
 
 export type Snippet = CreateSnippet & {
     id: string
-} & SnippetStatus & {
-    description?: string;
+    author: string;
+    compliance: ComplianceEnum;
+    created_at?: string;
+    updated_at?: string;
+    user_id?: string;
+    version?: string;
 }
 
-type SnippetStatus = {
-    compliance: ComplianceEnum;
-    author: string;
-}
 export type PaginatedSnippets = Pagination & {
     content: Snippet[]
 }

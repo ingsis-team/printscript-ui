@@ -196,6 +196,11 @@ export const SnippetTable = (props: SnippetTableProps) => {
                 </Box>
               </StyledTableCell>
               <StyledTableCell 
+                sx={{fontWeight: "bold"}}
+              >
+                Created Date
+              </StyledTableCell>
+              <StyledTableCell
                 sx={{fontWeight: "bold", cursor: "pointer", userSelect: "none"}}
                 onClick={() => onSortChange('author')}
               >
@@ -232,10 +237,15 @@ export const SnippetTable = (props: SnippetTableProps) => {
             )
           }
           </TableBody>
-          <TablePagination count={count} page={page} rowsPerPage={pageSize}
-                           onPageChange={(_, page) => handleGoToPage(page)}
-                           onRowsPerPageChange={e => handleChangePageSize(Number(e.target.value))}/>
         </Table>
+        <TablePagination
+          count={count}
+          page={page}
+          rowsPerPage={pageSize}
+          onPageChange={(_, page) => handleGoToPage(page)}
+          onRowsPerPageChange={e => handleChangePageSize(Number(e.target.value))}
+          component="div"
+        />
         <AddSnippetModal defaultSnippet={snippet} open={addModalOpened}
                          onClose={() => setAddModalOpened(false)}/>
         <Menu anchorEl={popoverRef.current} open={popoverMenuOpened} onClick={handleClickMenu}>

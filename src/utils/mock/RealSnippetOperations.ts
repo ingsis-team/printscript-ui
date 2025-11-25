@@ -9,16 +9,23 @@ import {Rule} from "../../types/Rule.ts";
 import axios from 'axios';
 import {BACKEND_URL, PRINTSCRIPT_SERVICE_URL} from '../constants.ts';
 
-const getToken = () => localStorage.getItem('token') || '';
+const getToken = () => {
+    const token = localStorage.getItem('token') || '';
+    return token;
+};
 const getUserId = () => localStorage.getItem('userId') || '';
 
-const SNIPPET_SERVICE_URL = `${BACKEND_URL}/snippets`;
+const SNIPPET_SERVICE_URL = `${BACKEND_URL}/api/snippets`;
 const PERMISSION_SERVICE_URL = `${BACKEND_URL.replace('8080', '8081')}/permissions`;
 
-const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${getToken()}`,
-    'ngrok-skip-browser-warning': '69420'
-});
+const getAuthHeaders = () => {
+    const token = getToken();
+    const headers = {
+        'Authorization': `Bearer ${token}`,
+        'ngrok-skip-browser-warning': '69420'
+    };
+    return headers;
+};
 
 export class RealSnippetOperations implements SnippetOperations {
     constructor() {
@@ -75,49 +82,44 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
         try {
+            // Simplificar la llamada para que coincida exactamente con el curl que funciona
             const response = await axios.get(
                 SNIPPET_SERVICE_URL,
                 {
-                    headers: getAuthHeaders(),
-                    params: {
-                        page,
-                        size: pageSize,
-                        name: snippetName,
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json',
                     },
+                    withCredentials: true, // Para incluir cookies
                 }
             );
 
             // Backend returns List<SnippetResponseDTO>, not paginated
             const allSnippets = Array.isArray(response.data) ? response.data : [];
             
-            // Get permissions for current user to determine which snippets they can see
-            const userId = getUserId();
-            try {
-                await axios.get(
-                    `${PERMISSION_SERVICE_URL}/user/${userId}`,
-                    {
-                        headers: getAuthHeaders(),
-                    }
-                );
-                // Permissions fetched successfully (for future use)
-            } catch (permError) {
-                // If permission service fails, continue with snippets from current user
-                console.warn('Could not fetch permissions, showing only owned snippets');
-            }
-
             // Map backend snippets to frontend format
             const snippets = allSnippets.map((s: any) => this.mapBackendSnippetToFrontend(s));
-            
-            // Apply pagination on frontend side (backend doesn't support it yet)
+
+            // Apply pagination and filtering on frontend side
+            let filteredSnippets = snippets;
+
+            // Apply name filter if provided
+            if (snippetName && snippetName.trim()) {
+                filteredSnippets = snippets.filter(snippet =>
+                    snippet.name.toLowerCase().includes(snippetName.toLowerCase())
+                );
+            }
+
+            // Apply pagination on frontend side
             const startIndex = page * pageSize;
             const endIndex = startIndex + pageSize;
-            const paginatedSnippets = snippets.slice(startIndex, endIndex);
-            
+            const paginatedSnippets = filteredSnippets.slice(startIndex, endIndex);
+
             return {
                 content: paginatedSnippets,
                 page,
                 page_size: pageSize,
-                count: snippets.length,
+                count: filteredSnippets.length,
             };
         } catch (error: any) {
             // More detailed error handling
@@ -130,16 +132,25 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet> {
         try {
-            // Check write permission first
-            const hasWritePermission = await this.checkWritePermission(id);
-            if (!hasWritePermission) {
-                throw new Error('You do not have permission to update this snippet');
+            console.log('Attempting to update snippet with ID:', id);
+            console.log('Update data:', updateSnippet);
+            console.log('Using token:', getToken() ? 'Token exists' : 'No token found');
+            console.log('Backend URL:', SNIPPET_SERVICE_URL);
+
+            // Build request body based on what fields are provided
+            const requestBody: any = {};
+
+            if (updateSnippet.content !== undefined) {
+                requestBody.content = updateSnippet.content;
+            }
+            if (updateSnippet.name !== undefined) {
+                requestBody.name = updateSnippet.name;
+            }
+            if (updateSnippet.description !== undefined) {
+                requestBody.description = updateSnippet.description;
             }
 
-            // Use JSON endpoint for editor-based update
-            const requestBody = {
-                content: updateSnippet.content,
-            };
+            console.log('Request body:', requestBody);
 
             const response = await axios.put(
                 `${SNIPPET_SERVICE_URL}/${id}`,
@@ -151,41 +162,82 @@ export class RealSnippetOperations implements SnippetOperations {
                     },
                 }
             );
+
+            console.log('Update response:', response.status, response.data);
             return this.mapBackendSnippetToFrontend(response.data);
         } catch (error: any) {
-            // Extract detailed error message from backend response
-            const errorMessage = this.extractErrorMessage(error);
-            throw new Error(errorMessage);
+            console.error('Error in updateSnippetById:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+
+            // Provide more detailed error information based on backend response
+            if (error.response?.status === 404) {
+                throw new Error(`Snippet with ID ${id} not found`);
+            } else if (error.response?.status === 403) {
+                throw new Error('You do not have permission to update this snippet');
+            } else if (error.response?.status === 401) {
+                throw new Error('Authentication failed. Please log in again.');
+            } else {
+                throw new Error(`Error updating snippet: ${error.response?.data?.message || error.message}`);
+            }
         }
     }
 
     async getUserFriends(page: number = 0, pageSize: number = 10, name?: string): Promise<PaginatedUsers> {
         try {
+            console.log('Fetching all users for sharing');
+            console.log('Current user ID:', getUserId());
+
             const response = await axios.get(
                 `${SNIPPET_SERVICE_URL}/users`,
                 {
                     headers: getAuthHeaders(),
-                    params: {
-                        search: name,
-                    },
                 }
             );
+
+            console.log('Users response:', response.data);
 
             // Backend returns List<Auth0UserDTO>
             const backendUsers = Array.isArray(response.data) ? response.data : [];
             
-            // Map backend users to frontend format
-            const users = backendUsers.map((u: any) => ({
-                id: u.user_id || u.email,
-                name: u.name || u.email,
-                username: u.username || u.email,
-            }));
-            
+            // Get current user ID to filter out from the list
+            const currentUserId = getUserId();
+
+            // Map backend users to frontend format and filter out current user
+            const users = backendUsers
+                .filter((u: any) => u.user_id !== currentUserId) // Exclude current user
+                .map((u: any) => ({
+                    id: u.user_id,
+                    user_id: u.user_id,
+                    name: u.name || u.email,
+                    username: u.nickname || u.email,
+                    email: u.email,
+                    nickname: u.nickname,
+                    picture: u.picture,
+                }));
+
+            // Apply name filter if provided (search in email and nickname)
+            let filteredUsers = users;
+            if (name && name.trim()) {
+                filteredUsers = users.filter(user =>
+                    user.email?.toLowerCase().includes(name.toLowerCase()) ||
+                    user.nickname?.toLowerCase().includes(name.toLowerCase()) ||
+                    user.name?.toLowerCase().includes(name.toLowerCase())
+                );
+            }
+
+            // Apply pagination on frontend side
+            const startIndex = page * pageSize;
+            const endIndex = startIndex + pageSize;
+            const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+            console.log(`Filtered users (excluding current user ${currentUserId}):`, paginatedUsers);
+
             return {
                 page,
                 page_size: pageSize,
-                count: users.length,
-                users,
+                count: filteredUsers.length,
+                users: paginatedUsers,
             };
         } catch (error: any) {
             console.error('Error fetching users:', error);
@@ -201,12 +253,13 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async shareSnippet(snippetId: string, userId: string): Promise<Snippet> {
         try {
-            // Use the snippet service's share endpoint
-            // Backend expects snake_case
-            await axios.post(
+            console.log('Attempting to share snippet:', snippetId, 'with user:', userId);
+            console.log('Using token:', getToken() ? 'Token exists' : 'No token found');
+
+            const response = await axios.post(
                 `${SNIPPET_SERVICE_URL}/share`,
                 {
-                    snippet_id: parseInt(snippetId),
+                    snippet_id: snippetId, // Use string ID as in your curl
                     target_user_id: userId,
                 },
                 {
@@ -217,6 +270,13 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
 
+            console.log('Share response:', response.status, response.data);
+
+            // Check if sharing was successful based on the response format you provided
+            if (response.data.message && response.data.message.includes('exitosamente')) {
+                console.log('Snippet shared successfully');
+            }
+
             // Return the snippet
             const snippet = await this.getSnippetById(snippetId);
             if (!snippet) {
@@ -224,9 +284,24 @@ export class RealSnippetOperations implements SnippetOperations {
             }
             return snippet;
         } catch (error: any) {
-            // Extract error message from response
-            const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
-            throw new Error(`Error sharing snippet: ${errorMessage}`);
+            console.error('Error sharing snippet:', error);
+            console.error('Share error response:', error.response?.data);
+            console.error('Share error status:', error.response?.status);
+
+            // Provide more detailed error information based on backend response
+            if (error.response?.status === 404) {
+                throw new Error('Snippet or user not found');
+            } else if (error.response?.status === 403) {
+                throw new Error('You do not have permission to share this snippet');
+            } else if (error.response?.status === 401) {
+                throw new Error('Authentication failed. Please log in again.');
+            } else if (error.response?.status === 400) {
+                throw new Error('Invalid request. Please check the snippet ID and user ID.');
+            } else {
+                // Extract detailed error message from backend response
+                const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+                throw new Error(`Error sharing snippet: ${errorMessage}`);
+            }
         }
     }
 
@@ -247,7 +322,6 @@ export class RealSnippetOperations implements SnippetOperations {
             // Map backend rules to frontend format
             return this.mapBackendRulesToFrontend(response.data);
         } catch (error: any) {
-            console.error('Error fetching format rules:', error);
             return [];
         }
     }
@@ -269,7 +343,6 @@ export class RealSnippetOperations implements SnippetOperations {
             // Map backend rules to frontend format
             return this.mapBackendRulesToFrontend(response.data);
         } catch (error: any) {
-            console.error('Error fetching linting rules:', error);
             return [];
         }
     }
@@ -322,6 +395,8 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async getTestCases(snippetId: string): Promise<TestCase[]> {
         try {
+            console.log('Fetching test cases for snippet ID:', snippetId);
+
             const response = await axios.get(
                 `${SNIPPET_SERVICE_URL}/${snippetId}/tests`,
                 {
@@ -329,15 +404,26 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
             
+            console.log('Test cases response:', response.data);
+
             // Map backend test format to frontend format
             // Use "snippetId-testId" format for the test ID
-            return response.data.map((test: any) => ({
-                id: `${snippetId}-${test.id}`,
-                name: test.name,
-                input: test.inputs || [],
-                output: test.expected_outputs || test.expectedOutputs || [],
-                snippetId: snippetId,
-            }));
+            const testCases = response.data.map((test: any) => {
+                const testCaseId = `${snippetId}-${test.id}`;
+                console.log('Creating test case with ID:', testCaseId, 'from snippetId:', snippetId, 'and testId:', test.id);
+
+                return {
+                    id: testCaseId,
+                    name: test.name,
+                    input: test.inputs || [],
+                    output: test.expected_outputs || test.expectedOutputs || [],
+                    snippetId: snippetId,
+                    expected_status: test.expected_status || 'VALID', // Map backend expected_status
+                };
+            });
+
+            console.log('Mapped test cases:', testCases);
+            return testCases;
         } catch (error: any) {
             console.error('Error fetching test cases:', error);
             return [];
@@ -351,7 +437,7 @@ export class RealSnippetOperations implements SnippetOperations {
                 name: testCase.name,
                 inputs: testCase.input || [],
                 expected_outputs: testCase.output || [],
-                expected_status: 'VALID', // Default status
+                expected_status: testCase.expected_status || 'VALID', // Include expected_status
             };
 
             const response = await axios.post(
@@ -371,6 +457,7 @@ export class RealSnippetOperations implements SnippetOperations {
                 input: response.data.inputs || [],
                 output: response.data.expected_outputs || response.data.expectedOutputs || [],
                 snippetId: testCase.snippetId!,
+                expected_status: response.data.expected_status || 'VALID',
             };
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || error.message;
@@ -380,28 +467,67 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async removeTestCase(id: string): Promise<string> {
         try {
-            // Extract snippet ID and test ID from the id (format: "snippetId-testId")
-            const [snippetId, testId] = id.split('-');
-            
-            await axios.delete(
-                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testId}`,
-                {
-                    headers: getAuthHeaders(),
-                }
-            );
+            console.log('Attempting to remove test case with ID:', id);
+
+            // Extract snippet ID and test ID from the id
+            // Format: "snippetId-testId" where both are UUIDs with format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+            // We need to split at the correct position to preserve both UUIDs
+
+            // UUID format: 8-4-4-4-12 characters (36 total with hyphens)
+            // So we need to find the dash at position 36 (after the first complete UUID)
+            if (id.length < 73) { // 36 + 1 + 36 = 73 minimum length for two UUIDs
+                throw new Error(`Invalid test case ID format: ${id}. Expected format: snippetUUID-testUUID`);
+            }
+
+            const snippetId = id.substring(0, 36); // First 36 characters (complete UUID)
+            const testId = id.substring(37); // Rest after the dash (complete UUID)
+
+            console.log('Parsed snippetId:', snippetId);
+            console.log('Parsed testId:', testId);
+
+            // Correct URL for DELETE - should NOT have /execute
+            const deleteUrl = `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testId}`;
+            console.log('DELETE URL:', deleteUrl);
+
+            await axios.delete(deleteUrl, {
+                headers: getAuthHeaders(),
+            });
+
+            console.log('Test case deleted successfully');
             return id;
         } catch (error: any) {
-            throw new Error(`Error deleting test case: ${error.message}`);
+            console.error('Error deleting test case:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+            throw new Error(`Error deleting test case: ${error.response?.data?.message || error.message}`);
         }
     }
 
     async testSnippet(id: string, envVars: string): Promise<TestCaseResult> {
         try {
-            // Extract snippet ID and test ID
-            const [snippetId, testId] = id.split('-');
-            
+            console.log('Attempting to test snippet with ID:', id);
+
+            // Extract snippet ID and test ID from the id
+            // Format: "snippetId-testId" where both are UUIDs with format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+            // We need to split at the correct position to preserve both UUIDs
+
+            // UUID format: 8-4-4-4-12 characters (36 total with hyphens)
+            // So we need to find the dash at position 36 (after the first complete UUID)
+            if (id.length < 73) { // 36 + 1 + 36 = 73 minimum length for two UUIDs
+                throw new Error(`Invalid test case ID format: ${id}. Expected format: snippetUUID-testUUID`);
+            }
+
+            const snippetId = id.substring(0, 36); // First 36 characters (complete UUID)
+            const testId = id.substring(37); // Rest after the dash (complete UUID)
+
+            console.log('Parsed snippetId:', snippetId);
+            console.log('Parsed testId:', testId);
+
+            const executeUrl = `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testId}/execute`;
+            console.log('EXECUTE URL:', executeUrl);
+
             const response = await axios.post(
-                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testId}/execute`,
+                executeUrl,
                 { env_vars: envVars },
                 {
                     headers: {
@@ -411,7 +537,16 @@ export class RealSnippetOperations implements SnippetOperations {
                 }
             );
 
-            // Check if test passed
+            console.log('Test execution response:', response.data);
+
+            // Backend response includes:
+            // { passed: boolean, expectedStatus: string, expectedOutputs: string[],
+            //   actualOutputs: string[], executionFailed: boolean, message: string }
+
+            // The test is successful if it passed according to the backend logic
+            // This means:
+            // - If expected_status is VALID: test passes if snippet executed successfully and outputs match
+            // - If expected_status is INVALID: test passes if snippet failed as expected
             return response.data.passed ? 'success' : 'fail';
         } catch (error: any) {
             console.error('Error executing test:', error);
@@ -447,21 +582,34 @@ export class RealSnippetOperations implements SnippetOperations {
 
     async deleteSnippet(id: string): Promise<string> {
         try {
-            // Check if user is OWNER before allowing delete
-            const isOwner = await this.checkOwnerPermission(id);
-            if (!isOwner) {
-                throw new Error('You do not have permission to delete this snippet. Only the owner can delete snippets.');
-            }
+            console.log('Attempting to delete snippet with ID:', id);
+            console.log('Using token:', getToken() ? 'Token exists' : 'No token found');
+            console.log('Backend URL:', SNIPPET_SERVICE_URL);
 
-            await axios.delete(
+            const response = await axios.delete(
                 `${SNIPPET_SERVICE_URL}/${id}`,
                 {
                     headers: getAuthHeaders(),
                 }
             );
+
+            console.log('Delete response:', response.status, response.data);
             return id;
         } catch (error: any) {
-            throw new Error(`Error deleting snippet: ${error.message}`);
+            console.error('Error in deleteSnippet:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+
+            // Provide more detailed error information based on backend response
+            if (error.response?.status === 404) {
+                throw new Error(`Snippet with ID ${id} not found`);
+            } else if (error.response?.status === 403) {
+                throw new Error('You do not have permission to delete this snippet');
+            } else if (error.response?.status === 401) {
+                throw new Error('Authentication failed. Please log in again.');
+            } else {
+                throw new Error(`Error deleting snippet: ${error.response?.data?.message || error.message}`);
+            }
         }
     }
 
@@ -543,7 +691,8 @@ export class RealSnippetOperations implements SnippetOperations {
 
     // Helper methods
 
-    private async checkWritePermission(snippetId: string): Promise<boolean> {
+    // @ts-expect-error - Unused but kept for potential future use
+    private async _checkWritePermission(snippetId: string): Promise<boolean> {
         try {
             const userId = getUserId();
             const response = await axios.get(
@@ -562,9 +711,12 @@ export class RealSnippetOperations implements SnippetOperations {
         }
     }
 
-    private async checkOwnerPermission(snippetId: string): Promise<boolean> {
+    // @ts-expect-error - Unused but kept for potential future use
+    private async _checkOwnerPermission(snippetId: string): Promise<boolean> {
         try {
             const userId = getUserId();
+            console.log('Checking owner permission for snippet:', snippetId, 'user:', userId);
+
             const response = await axios.get(
                 `${PERMISSION_SERVICE_URL}/check`,
                 {
@@ -575,9 +727,25 @@ export class RealSnippetOperations implements SnippetOperations {
                     },
                 }
             );
+
+            console.log('Permission check response:', response.data);
+
             // Check if user has permission AND is OWNER
-            return response.data.has_permission && response.data.role === 'OWNER';
+            const hasPermission = response.data.has_permission && response.data.role === 'OWNER';
+            console.log('Has owner permission:', hasPermission);
+
+            return hasPermission;
         } catch (error: any) {
+            console.error('Error checking owner permission:', error);
+            console.error('Permission service error response:', error.response?.data);
+
+            // If permission service is unavailable, allow deletion for now
+            // This is a fallback to prevent the permission service from blocking all deletes
+            if (error.response?.status === 404 || error.code === 'ECONNREFUSED') {
+                console.warn('Permission service unavailable, allowing deletion');
+                return true;
+            }
+
             return false;
         }
     }
@@ -595,8 +763,12 @@ export class RealSnippetOperations implements SnippetOperations {
             content: backendSnippet.content,
             language: language,
             extension: this.getExtensionFromLanguage(language),
-            author: backendSnippet.user_id || backendSnippet.userId || 'Unknown',
+            author: backendSnippet.user_id || 'Unknown',
             compliance: this.mapComplianceStatus(backendSnippet),
+            created_at: backendSnippet.created_at,
+            updated_at: backendSnippet.updated_at,
+            user_id: backendSnippet.user_id,
+            version: backendSnippet.version,
         };
     }
 
@@ -688,4 +860,3 @@ export class RealSnippetOperations implements SnippetOperations {
         }));
     }
 }
-
