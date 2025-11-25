@@ -1,4 +1,4 @@
-name: CD Pipeline
+name: CD Pipeline 
 
 on:
   push:
@@ -59,3 +59,17 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: refresh container
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd infra-microservices-2025
+            # Actualizar imagen y reiniciar servicio
+            docker compose pull printscript-ui
+            docker compose up -d --force-recreate printscript-ui
+            # Reiniciar proxy para aplicar cambios
+            docker compose restart proxy
