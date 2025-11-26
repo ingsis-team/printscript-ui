@@ -23,12 +23,40 @@ describe('Home', () => {
 
   // You need to have at least 1 snippet in your DB for this test to pass
   it('Renders the first snippets', () => {
+    // Mock the GET snippets endpoint with test data
+    cy.intercept('GET', BACKEND_URL+"/api/snippets*", {
+      statusCode: 200,
+      body: [
+        {
+          id: '1',
+          name: 'Test Snippet 1',
+          content: 'print(1)',
+          language: 'printscript',
+          extension: '.ps',
+          compliance: 'pending',
+          author: 'Test User'
+        },
+        {
+          id: '2',
+          name: 'Test Snippet 2',
+          content: 'print(2)',
+          language: 'printscript',
+          extension: '.ps',
+          compliance: 'pending',
+          author: 'Test User'
+        }
+      ]
+    }).as('getSnippets');
+    
     cy.visit(FRONTEND_URL)
-    const first10Snippets = cy.get('[data-testid="snippet-row"]')
-
-    first10Snippets.should('have.length.greaterThan', 0)
-
-    first10Snippets.should('have.length.at.most', 10)
+    
+    // Wait for the API call
+    cy.wait('@getSnippets')
+    
+    // Wait for snippets to render
+    cy.get('[data-testid="snippet-row"]', { timeout: 10000 })
+      .should('have.length.greaterThan', 0)
+      .and('have.length.at.most', 10)
   })
 
   it('Can creat snippet find snippets by name', () => {
