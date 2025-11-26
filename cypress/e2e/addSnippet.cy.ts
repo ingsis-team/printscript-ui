@@ -9,7 +9,7 @@ describe('Add snippet tests', () => {
   })
   it('Can add snippets manually', () => {
     cy.visit("/")
-    cy.intercept('POST', BACKEND_URL+"/snippets", (req) => {
+    cy.intercept('POST', BACKEND_URL+"/api/snippets", (req) => {
       // Validate request has required fields
       expect(req.body).to.have.property('name');
       expect(req.body).to.have.property('content');
@@ -46,7 +46,7 @@ describe('Add snippet tests', () => {
 
   it('Can add snippets via file', () => {
     cy.visit("/")
-    cy.intercept('POST', BACKEND_URL+"/snippets", (req) => {
+    cy.intercept('POST', BACKEND_URL+"/api/snippets", (req) => {
       // Validate request has required fields
       expect(req.body).to.have.property('name');
       expect(req.body).to.have.property('content');
