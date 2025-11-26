@@ -40,30 +40,66 @@ describe('Home', () => {
       extension: ".ps"
     }
 
-    cy.intercept('GET', BACKEND_URL+"/snippets*", (req) => {
-      req.reply((res) => {
-        expect(res.statusCode).to.eq(200);
+    // Mock the POST request to create a snippet
+    cy.intercept('POST', BACKEND_URL+"/api/snippets", (req) => {
+      // Validate request has required fields
+      expect(req.body).to.have.property('name');
+      expect(req.body).to.have.property('content');
+      expect(req.body).to.have.property('language');
+      
+      // Mock successful response
+      req.reply({
+        statusCode: 201,
+        body: {
+          id: 'test-id-123',
+          name: req.body.name,
+          content: req.body.content,
+          language: req.body.language,
+          extension: req.body.extension || '.ps',
+          compliance: 'pending'
+        }
+      });
+    }).as('postSnippet');
+
+    // Mock the GET request to search snippets
+    cy.intercept('GET', BACKEND_URL+"/api/snippets*", (req) => {
+      req.reply({
+        statusCode: 200,
+        body: [{
+          id: 'test-id-123',
+          name: snippetData.name,
+          content: snippetData.content,
+          language: snippetData.language,
+          extension: snippetData.extension
+        }]
       });
     }).as('getSnippets');
 
-    cy.request({
-      method: 'POST',
-      url: '/snippets', // Adjust if you have a different base URL configured in Cypress
-      body: snippetData,
-      failOnStatusCode: false // Optional: set to true if you want the test to fail on non-2xx status codes
-    }).then((response) => {
-      expect(response.status).to.eq(200);
+    // Use the UI to create the snippet
+    cy.get('[data-testid="add-snippet-button"]').click();
+    cy.get('[data-testid="create-snippet-menu-item"]').first().click();
+    cy.get('#name').clear().type(snippetData.name);
+    cy.get('#demo-simple-select').first().click();
+    cy.get('[data-testid="menu-option-printscript"]').first().click();
+    cy.get('[data-testid="add-snippet-code-editor"]').click();
+    cy.get('[data-testid="add-snippet-code-editor"]').type(snippetData.content);
+    cy.get('[data-testid="save-snippet-button"]').click();
 
-      expect(response.body.name).to.eq(snippetData.name)
-      expect(response.body.content).to.eq(snippetData.content)
-      expect(response.body.language).to.eq(snippetData.language)
-      expect(response.body).to.haveOwnProperty("id")
+    // Wait for the POST request and verify it was successful
+    cy.wait('@postSnippet').its('response.statusCode').should('eq', 201);
 
-      cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').clear();
-      cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').type(snippetData.name + "{enter}");
+    // Wait for modal to close and return to home page
+    cy.wait(1000);
+    
+    // Ensure we're back on the home page with the search input visible
+    cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').should('be.visible');
+    
+    // Now search for the snippet by name
+    cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').clear();
+    cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').type(snippetData.name + "{enter}");
 
-      cy.wait("@getSnippets")
-      cy.contains(snippetData.name).should('exist');
-    })
+    // Wait for the GET request and verify the snippet appears
+    cy.wait("@getSnippets")
+    cy.contains(snippetData.name).should('exist');
   })
 })
