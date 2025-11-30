@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import axios from 'axios';
-import { BACKEND_URL } from './constants';
+import { BACKEND_URL, PRINTSCRIPT_SERVICE_URL } from './constants';
 import { FormattingRule, LintingRule, FormattingResponse, LintingResponse } from '../types/Rule';
 import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from './snippet';
 import { PaginatedUsers } from './users';
@@ -35,7 +35,7 @@ const getAuthHeaders = (opts: { contentType?: boolean; includeCorrelation?: bool
     return headers;
 };
 
-const CODE_ANALYSIS_URL = `${BACKEND_URL}`;
+const CODE_ANALYSIS_URL = `${PRINTSCRIPT_SERVICE_URL}`;
 const SNIPPET_SERVICE_URL = `${BACKEND_URL}/api/snippets`;
 
 // Helpers para mapear entre frontend (camelCase) y backend (snake_case for is_active)
@@ -384,14 +384,19 @@ export const useGetFormattingRules = () => {
     return useQuery<FormattingRule[], Error>(
         ['formattingRules'],
         async () => {
-            const response = await axios.get(`${CODE_ANALYSIS_URL}/rules/format`, {
+            const userId = getUserId();
+            if (!userId) {
+                throw new Error('User ID not found');
+            }
+            const encodedUserId = encodeURIComponent(userId);
+            const response = await axios.get(`${CODE_ANALYSIS_URL}/rules/format/${encodedUserId}`, {
                 headers: getAuthHeaders({ contentType: false }), // GET -> no content-type, but include correlation
             });
             const data = Array.isArray(response.data) ? response.data : [];
             return data.map(fromBackendRule) as FormattingRule[];
         },
         {
-            enabled: !!getToken(),
+            enabled: !!getToken() && !!getUserId(),
             retry: 1,
         }
     );
@@ -408,12 +413,17 @@ export const useSaveFormattingRules = ({
 
     return useMutation<FormattingRule[], Error, { rules: FormattingRule[] }>(
         async ({ rules }) => {
+            const userId = getUserId();
+            if (!userId) {
+                throw new Error('User ID not found');
+            }
+            const encodedUserId = encodeURIComponent(userId);
             // Validar mínima forma: cada rule debe tener id y name
             const toSend = (rules || []).map(toBackendRule);
 
-            // El API espera una lista JSON directa y método POST (/rules/format)
+            // El API espera una lista JSON directa y método POST (/rules/format/{userId})
             const response = await axios.post(
-                `${CODE_ANALYSIS_URL}/rules/format`,
+                `${CODE_ANALYSIS_URL}/rules/format/${encodedUserId}`,
                 toSend,
                 { headers: getAuthHeaders() }
             );
@@ -462,14 +472,19 @@ export const useGetLintingRules = () => {
     return useQuery<LintingRule[], Error>(
         ['lintingRules'],
         async () => {
-            const response = await axios.get(`${CODE_ANALYSIS_URL}/rules/lint`, {
+            const userId = getUserId();
+            if (!userId) {
+                throw new Error('User ID not found');
+            }
+            const encodedUserId = encodeURIComponent(userId);
+            const response = await axios.get(`${CODE_ANALYSIS_URL}/rules/lint/${encodedUserId}`, {
                 headers: getAuthHeaders({ contentType: false }),
             });
             const data = Array.isArray(response.data) ? response.data : [];
             return data.map(fromBackendRule) as LintingRule[];
         },
         {
-            enabled: !!getToken(),
+            enabled: !!getToken() && !!getUserId(),
             retry: 1,
             onError: (error: any) => {
                 console.error('Error fetching linting rules:', error);
@@ -489,9 +504,14 @@ export const useSaveLintingRules = ({
 
     return useMutation<LintingRule[], Error, { rules: LintingRule[] }>(
         async ({ rules }) => {
+            const userId = getUserId();
+            if (!userId) {
+                throw new Error('User ID not found');
+            }
+            const encodedUserId = encodeURIComponent(userId);
             const toSend = (rules || []).map(toBackendRule);
             const response = await axios.post(
-                `${CODE_ANALYSIS_URL}/rules/lint`,
+                `${CODE_ANALYSIS_URL}/rules/lint/${encodedUserId}`,
                 toSend,
                 { headers: getAuthHeaders() }
             );
