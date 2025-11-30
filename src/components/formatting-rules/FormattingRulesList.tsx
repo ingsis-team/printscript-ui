@@ -1,97 +1,91 @@
-import React, {useEffect, useState} from 'react';
-import {
-  Button,
-  Card,
-  Checkbox,
-  List,
-  ListItem,
-  ListItemText, TextField,
-  Typography
-} from "@mui/material";
-import {useGetFormatRules, useModifyFormatRules} from "../../utils/queries.tsx";
-import {queryClient} from "../../App.tsx";
-import {Rule} from "../../types/Rule.ts";
+import React from 'react';
+import { RulesListBase } from '../common/RulesListBase';
+import { FormattingRule } from '../../types/Rule';
+import { useGetFormattingRules, useSaveFormattingRules } from '../../utils/queries';
+import { useSnackbarContext } from '../../contexts/snackbarContext';
 
-const FormattingRulesList = () => {
-  const [rules, setRules] = useState<Rule[] | undefined>([]);
-
-  const {data, isLoading} = useGetFormatRules();
-  const {mutateAsync, isLoading: isLoadingMutate} = useModifyFormatRules({
-    onSuccess: () => queryClient.invalidateQueries('formatRules')
-  })
-
-  useEffect(() => {
-    setRules(data)
-  }, [data]);
-
-  const handleValueChange = (rule: Rule, newValue: string | number) => {
-    const newRules = rules?.map(r => {
-      if (r.name === rule.name) {
-        return {...r, value: newValue}
-      } else {
-        return r;
-      }
-    })
-    setRules(newRules)
-  };
-
-  const handleNumberChange = (rule: Rule) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(event.target.value, 10);
-    handleValueChange(rule, isNaN(value) ? 0 : value);
-  };
-
-  const toggleRule = (rule: Rule) => () => {
-    const newRules = rules?.map(r => {
-      if (r.name === rule.name) {
-        return {...r, isActive: !r.isActive}
-      } else {
-        return r;
-      }
-    })
-    setRules(newRules)
-  }
-
-  return (
-    <Card style={{padding: 16, margin: 16}}>
-      <Typography variant={"h6"}>Formatting rules</Typography>
-      <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
-        {
-          isLoading || isLoadingMutate ?  <Typography style={{height: 80}}>Loading...</Typography> :
-          rules?.map((rule) => {
-          return (
-            <ListItem
-              key={rule.name}
-              disablePadding
-              style={{height: 40}}
-            >
-              <Checkbox
-                edge="start"
-                checked={rule.isActive}
-                disableRipple
-                onChange={toggleRule(rule)}
-              />
-              <ListItemText primary={rule.name} />
-              {typeof rule.value === 'number' ?
-                (<TextField
-                  type="number"
-                  variant={"standard"}
-                  value={rule.value}
-                  onChange={handleNumberChange(rule)}
-                />) : typeof rule.value === 'string' ?
-                  (<TextField
-                    variant={"standard"}
-                    value={rule.value}
-                    onChange={e => handleValueChange(rule, e.target.value)}
-                  />) : null
-              }
-            </ListItem>
-          )
-        })}
-      </List>
-      <Button disabled={isLoading} variant={"contained"} onClick={() => mutateAsync(rules ?? [])}>Save</Button>
-    </Card>
-
-  );
+const FORMATTING_RULE_CONFIGS = {
+    spaceBeforeColon: {
+        description: 'Espacio antes de : en declaraciones de tipo',
+        possibleValues: [true, false],
+        type: 'boolean' as const,
+    },
+    spaceAfterColon: {
+        description: 'Espacio después de : en declaraciones de tipo',
+        possibleValues: [true, false],
+        type: 'boolean' as const,
+    },
+    indentSize: {
+        description: 'Tamaño de la indentación (espacios)',
+        possibleValues: [2, 4, 8],
+        type: 'number' as const,
+    },
+    lineBreakBeforePrintln: {
+        description: 'Saltos de línea antes de println',
+        possibleValues: [1, 2, 3],
+        type: 'number' as const,
+    },
+    // Added defaults for rules that backend may omit metadata for
+    spaceAroundEquals: {
+        description: 'Agregar espacio alrededor del operador = en asignaciones',
+        possibleValues: [true, false],
+        type: 'boolean' as const,
+    },
+    lineBreak: {
+        description: 'Número de saltos de línea entre secciones / bloques',
+        possibleValues: [1, 2, 3],
+        type: 'number' as const,
+    },
+    lineBreakPrintln: {
+        description: 'Número de saltos de línea relacionados con println',
+        possibleValues: [1, 2, 3],
+        type: 'number' as const,
+    },
+    conditionalIndentation: {
+        description: 'Indentación aplicada dentro de bloques condicionales',
+        possibleValues: [1, 2, 3],
+        type: 'number' as const,
+    },
+    enablePrintOnly: {
+        description: 'Habilitar solo impresión en ciertas construcciones',
+        possibleValues: [true, false],
+        type: 'boolean' as const,
+    },
+    enableInputOnly: {
+        description: 'Habilitar solo entrada en ciertas construcciones',
+        possibleValues: [true, false],
+        type: 'boolean' as const,
+    },
 };
 
-export default FormattingRulesList;
+export const FormattingRulesList: React.FC = () => {
+    const { data: formattingRules, isLoading, error } = useGetFormattingRules();
+    const { createSnackbar } = useSnackbarContext();
+
+    const { mutateAsync: saveRules, isLoading: isSaving } = useSaveFormattingRules({
+        onSuccess: () => {
+            createSnackbar('success', '¡Reglas guardadas exitosamente! Tus snippets se están actualizando con las nuevas reglas de formateo.');
+        },
+        onError: (error) => {
+            createSnackbar('error', `Error al guardar las reglas: ${error.message}`);
+        },
+    });
+
+    const handleSave = async (rules: FormattingRule[]) => {
+        await saveRules({ rules });
+    };
+
+    return (
+        <RulesListBase
+            title="Reglas de Formateo"
+            rules={formattingRules}
+            isLoading={isLoading}
+            error={error}
+            onSave={handleSave}
+            isSaving={isSaving}
+            ruleConfigs={FORMATTING_RULE_CONFIGS}
+            successMessage="Al guardar, todos tus snippets se formatearán automáticamente con las nuevas reglas."
+            updateMessage="Los snippets se están formateando con las nuevas reglas. Este proceso puede tardar unos momentos y es tolerante a fallos..."
+        />
+    );
+};

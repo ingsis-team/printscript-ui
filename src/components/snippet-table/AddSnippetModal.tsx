@@ -1,7 +1,6 @@
 import {
     Box,
     Button,
-    capitalize,
     CircularProgress,
     Input,
     InputLabel,
@@ -23,6 +22,7 @@ import {ModalWrapper} from "../common/ModalWrapper.tsx";
 import {useCreateSnippet, useGetFileTypes} from "../../utils/queries.tsx";
 import {queryClient} from "../../App.tsx";
 import {useSnackbarContext} from "../../contexts/snackbarContext.tsx";
+import { safeCapitalize } from '../../utils/string';
 
 export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     open: boolean,
@@ -53,9 +53,9 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
             }
             await createSnippet(newSnippet);
             onClose();
-        } catch (error: any) {
-            // Handle different types of errors
-            const errorMessage = error.message || 'Failed to create snippet'
+        } catch (error: unknown) {
+            // Handle different types of errors safely without using `any`
+            const errorMessage = (error instanceof Error) ? error.message : String(error) || 'Failed to create snippet';
             if (errorMessage.includes('syntax') || errorMessage.includes('sintaxis') || errorMessage.includes('Invalid snippet syntax')) {
                 createSnackbar('error', `Syntax validation failed: ${errorMessage}`)
             } else if (errorMessage.includes('existe') || errorMessage.includes('exists')) {
@@ -132,12 +132,17 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                     sx={{width: '50%'}}
                 >
                     {
-                        fileTypes?.map(x => (
-                            <MenuItem data-testid={`menu-option-${x.language}`} key={x.language}
-                                      value={x.language}>{capitalize((x.language))}</MenuItem>
-                        ))
-                    }
-                </Select>
+                        fileTypes?.map((x, idx) => (
+                            <MenuItem
+                                data-testid={`menu-option-${x.language}`}
+                                key={x.language ?? idx}
+                                value={x.language}
+                            >
+                                {x.name ? String(x.name) : safeCapitalize(x.language)}
+                             </MenuItem>
+                         ))
+                     }
+                 </Select>
             </Box>
             <InputLabel>Code Snippet</InputLabel>
             <Box width={"100%"} sx={{
@@ -163,4 +168,3 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
         </ModalWrapper>
     )
 }
-
