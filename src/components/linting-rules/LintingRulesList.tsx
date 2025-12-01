@@ -5,18 +5,18 @@ import { useGetLintingRules, useSaveLintingRules } from '../../utils/queries';
 import { useSnackbarContext } from '../../contexts/snackbarContext';
 
 const LINTING_RULE_CONFIGS = {
-    identifierFormat: {
+    identifier_format: {
         description: 'Formato de nomenclatura de variables',
-        possibleValues: ['camelCase', 'snake_case'],
+        possibleValues: ['camelcase', 'snakecase'],
         type: 'string' as const,
     },
-    printlnUsage: {
-        description: 'Verificar uso correcto de println',
+    enablePrintOnly: {
+        description: 'Habilitar solo uso de print en el código',
         possibleValues: [true, false],
         type: 'boolean' as const,
     },
-    readInputUsage: {
-        description: 'Verificar uso correcto de readInput',
+    enableInputOnly: {
+        description: 'Habilitar solo uso de input en el código',
         possibleValues: [true, false],
         type: 'boolean' as const,
     },
@@ -53,4 +53,3 @@ export const LintingRulesList: React.FC = () => {
         />
     );
 };
-

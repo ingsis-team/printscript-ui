@@ -15,46 +15,25 @@ const FORMATTING_RULE_CONFIGS = {
         possibleValues: [true, false],
         type: 'boolean' as const,
     },
-    indentSize: {
-        description: 'Tamaño de la indentación (espacios)',
-        possibleValues: [2, 4, 8],
-        type: 'number' as const,
-    },
-    lineBreakBeforePrintln: {
-        description: 'Saltos de línea antes de println',
-        possibleValues: [1, 2, 3],
-        type: 'number' as const,
-    },
-    // Added defaults for rules that backend may omit metadata for
     spaceAroundEquals: {
-        description: 'Agregar espacio alrededor del operador = en asignaciones',
+        description: 'Espacio alrededor del operador = en asignaciones',
         possibleValues: [true, false],
         type: 'boolean' as const,
     },
     lineBreak: {
-        description: 'Número de saltos de línea entre secciones / bloques',
+        description: 'Número de saltos de línea entre declaraciones',
         possibleValues: [1, 2, 3],
         type: 'number' as const,
     },
     lineBreakPrintln: {
-        description: 'Número de saltos de línea relacionados con println',
+        description: 'Número de saltos de línea antes de println',
         possibleValues: [1, 2, 3],
         type: 'number' as const,
     },
     conditionalIndentation: {
-        description: 'Indentación aplicada dentro de bloques condicionales',
-        possibleValues: [1, 2, 3],
+        description: 'Espacios de indentación dentro de bloques condicionales',
+        possibleValues: [1, 2, 3, 4],
         type: 'number' as const,
-    },
-    enablePrintOnly: {
-        description: 'Habilitar solo impresión en ciertas construcciones',
-        possibleValues: [true, false],
-        type: 'boolean' as const,
-    },
-    enableInputOnly: {
-        description: 'Habilitar solo entrada en ciertas construcciones',
-        possibleValues: [true, false],
-        type: 'boolean' as const,
     },
 };
 
