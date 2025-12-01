@@ -73,7 +73,14 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             createSnackbar('error', error.message || 'Failed to share snippet')
         }
     })
-    const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet(snippet?.id ?? "", snippet?.language ?? "")
+    const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet({
+        onSuccess: () => {
+            createSnackbar('success', 'Snippet formatted successfully!')
+        },
+        onError: (error) => {
+            createSnackbar('error', error.message || 'Failed to format snippet')
+        }
+    })
     const {mutate: updateSnippet, isLoading: isUpdateSnippetLoading} = useUpdateSnippetById({
         onSuccess: () => {
             queryClient.invalidateQueries(['snippet', id])
@@ -218,7 +225,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
               {/*</Tooltip>*/}
               {/* TODO: we can implement a live mode*/}
               <Tooltip title={"Format"}>
-                <IconButton onClick={() => formatSnippet()} disabled={isFormatLoading}>
+                <IconButton onClick={() => formatSnippet({ snippetId: snippet?.id ?? "" })} disabled={isFormatLoading}>
                   <ReadMoreIcon />
                 </IconButton>
               </Tooltip>
