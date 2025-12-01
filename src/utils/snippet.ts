@@ -51,5 +51,7 @@ export type PaginatedSnippets = Pagination & {
 }
 
 export const getFileLanguage = (fileTypes: FileType[], fileExt?: string) => {
-    return fileExt && fileTypes?.find(x => x.extension == fileExt)
+    if (!fileExt) return undefined;
+    const normalized = String(fileExt).toLowerCase().replace(/^\./, '');
+    return fileTypes?.find(x => x.extension === normalized);
 }

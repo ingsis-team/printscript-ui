@@ -1,40 +1,171 @@
-import {useMutation, UseMutationResult, useQuery, useQueryClient} from 'react-query';
-import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from './snippet.ts';
-import {SnippetOperations} from "./snippetOperations.ts";
-import {PaginatedUsers} from "./users.ts";
-import {RealSnippetOperations} from "./mock/RealSnippetOperations.ts";
-import {TestCase} from "../types/TestCase.ts";
-import {FileType} from "../types/FileType.ts";
-import {Rule} from "../types/Rule.ts";
+import { useMutation, useQuery, useQueryClient } from 'react-query';
+import axios from 'axios';
+import { BACKEND_URL, PRINTSCRIPT_SERVICE_URL } from './constants';
+import { FormattingRule, LintingRule, FormattingResponse, LintingResponse } from '../types/Rule';
+import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from './snippet';
+import { PaginatedUsers } from './users';
+import { TestCase } from '../types/TestCase';
+import { FileType } from '../types/FileType';
 
-const snippetOperations: SnippetOperations = new RealSnippetOperations();
+const getToken = () => localStorage.getItem('token') || '';
+const getUserId = () => localStorage.getItem('userId') || '';
+
+// Helper: generar correlation id (usa crypto.randomUUID cuando está disponible)
+const generateCorrelationId = () => {
+    try {
+        if (typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function') {
+            return (crypto as any).randomUUID();
+        }
+    } catch (e) {
+        // ignore
+    }
+    // Fallback simple
+    return `corr-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+// getAuthHeaders ahora permite controlar inclusion de Content-Type y Correlation-id
+const getAuthHeaders = (opts: { contentType?: boolean; includeCorrelation?: boolean } = {}) => {
+    const { contentType = true, includeCorrelation = true } = opts;
+    const headers: any = {
+        'Authorization': `Bearer ${getToken()}`,
+        'ngrok-skip-browser-warning': '69420'
+    };
+    if (contentType) headers['Content-Type'] = 'application/json';
+    if (includeCorrelation) headers['Correlation-id'] = generateCorrelationId();
+    return headers;
+};
+
+const CODE_ANALYSIS_URL = `${PRINTSCRIPT_SERVICE_URL}`;
+const SNIPPET_SERVICE_URL = `${BACKEND_URL}/api/snippets`;
+
+// Helpers para mapear entre frontend (camelCase) y backend (snake_case for is_active)
+const toBackendRule = (r: FormattingRule | LintingRule) => ({
+    id: r.id,
+    name: r.name,
+    is_active: r.isActive,
+    value: r.value,
+});
+
+const fromBackendRule = (r: any): FormattingRule | LintingRule => ({
+    id: String(r.id),
+    name: String(r.name),
+    isActive: r.is_active ?? r.isActive ?? false,
+    value: r.value ?? null,
+    description: r.description ?? undefined,
+});
+
+// ============= SNIPPET QUERIES =============
 
 export const useGetSnippets = (page: number = 0, pageSize: number = 10, snippetName?: string, tokenReady?: boolean) => {
-    const getToken = () => localStorage.getItem('token') || '';
     return useQuery<PaginatedSnippets, Error>(
         ['listSnippets', page, pageSize, snippetName, tokenReady],
-        () => snippetOperations.listSnippetDescriptors(page, pageSize, snippetName),
+        async () => {
+            const response = await axios.get(SNIPPET_SERVICE_URL, {
+                headers: getAuthHeaders(),
+            });
+
+            const allSnippets = Array.isArray(response.data) ? response.data : [];
+            const snippets = allSnippets.map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                content: s.content,
+                language: s.language.toLowerCase(),
+                extension: s.language === 'PRINTSCRIPT' ? 'prs' : 'ps',
+                description: s.description || '',
+                author: s.user_id || 'unknown',
+                compliance: s.compliance || 'pending',
+                created_at: s.created_at,
+                updated_at: s.updated_at,
+                user_id: s.user_id,
+                version: s.version,
+            }));
+
+            let filteredSnippets = snippets;
+            if (snippetName && snippetName.trim()) {
+                filteredSnippets = snippets.filter((snippet: Snippet) =>
+                    snippet.name.toLowerCase().includes(snippetName.toLowerCase())
+                );
+            }
+
+            const startIndex = page * pageSize;
+            const endIndex = startIndex + pageSize;
+            const paginatedSnippets = filteredSnippets.slice(startIndex, endIndex);
+
+            return {
+                content: paginatedSnippets,
+                page,
+                page_size: pageSize,
+                count: filteredSnippets.length,
+            };
+        },
         {
-            enabled: !!getToken() && tokenReady !== false, // Solo ejecutar cuando hay token disponible y tokenReady es true
+            enabled: !!getToken() && tokenReady !== false,
             retry: 1,
-            staleTime: 1000 * 60 * 5, // 5 minutos
+            staleTime: 1000 * 60 * 5,
         }
     );
 };
 
 export const useGetSnippetById = (id: string) => {
-    return useQuery<Snippet | undefined, Error>(['snippet', id], () => snippetOperations.getSnippetById(id), {
-        enabled: !!id, // This query will not execute until the id is provided
-    });
+    return useQuery<Snippet | undefined, Error>(
+        ['snippet', id],
+        async () => {
+            const response = await axios.get(`${SNIPPET_SERVICE_URL}/${id}`, {
+                headers: getAuthHeaders(),
+            });
+
+            const s = response.data;
+            return {
+                id: s.id,
+                name: s.name,
+                content: s.content,
+                language: s.language.toLowerCase(),
+                extension: s.language === 'PRINTSCRIPT' ? 'prs' : 'ps',
+                description: s.description || '',
+                author: s.user_id || 'unknown',
+                compliance: s.compliance || 'pending',
+                created_at: s.created_at,
+                updated_at: s.updated_at,
+                user_id: s.user_id,
+                version: s.version,
+            };
+        },
+        {
+            enabled: !!id,
+        }
+    );
 };
 
-export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<Snippet, Error, CreateSnippet> => {
+export const useCreateSnippet = ({ onSuccess }: { onSuccess: () => void }) => {
     const queryClient = useQueryClient();
     return useMutation<Snippet, Error, CreateSnippet>(
-        createSnippet => snippetOperations.createSnippet(createSnippet),
+        async (createSnippet) => {
+            const requestBody = {
+                name: createSnippet.name,
+                description: createSnippet.description || '',
+                language: createSnippet.language.toUpperCase(),
+                content: createSnippet.content,
+                version: '1.1',
+            };
+
+            const response = await axios.post(SNIPPET_SERVICE_URL, requestBody, {
+                headers: getAuthHeaders(),
+            });
+
+            const s = response.data;
+            return {
+                id: s.id,
+                name: s.name,
+                content: s.content,
+                language: s.language.toLowerCase(),
+                extension: s.language === 'PRINTSCRIPT' ? 'prs' : 'ps',
+                description: s.description || '',
+                author: s.user_id || 'unknown',
+                compliance: s.compliance || 'pending',
+            };
+        },
         {
             onSuccess: () => {
-                // Invalidate snippets list to refresh the UI
                 queryClient.invalidateQueries(['listSnippets']);
                 onSuccess();
             }
@@ -42,16 +173,33 @@ export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutat
     );
 };
 
-export const useUpdateSnippetById = ({onSuccess, onError}: {onSuccess: () => void, onError?: (error: Error) => void}): UseMutationResult<Snippet, Error, {
-    id: string;
-    updateSnippet: UpdateSnippet
-}> => {
+export const useUpdateSnippetById = ({ onSuccess, onError }: { onSuccess: () => void, onError?: (error: Error) => void }) => {
     const queryClient = useQueryClient();
     return useMutation<Snippet, Error, { id: string; updateSnippet: UpdateSnippet }>(
-        ({id, updateSnippet}) => snippetOperations.updateSnippetById(id, updateSnippet),
+        async ({ id, updateSnippet }) => {
+            const requestBody: any = {};
+            if (updateSnippet.content !== undefined) requestBody.content = updateSnippet.content;
+            if (updateSnippet.name !== undefined) requestBody.name = updateSnippet.name;
+            if (updateSnippet.description !== undefined) requestBody.description = updateSnippet.description;
+
+            const response = await axios.put(`${SNIPPET_SERVICE_URL}/${id}`, requestBody, {
+                headers: getAuthHeaders(),
+            });
+
+            const s = response.data;
+            return {
+                id: s.id,
+                name: s.name,
+                content: s.content,
+                language: s.language.toLowerCase(),
+                extension: s.language === 'PRINTSCRIPT' ? 'prs' : 'ps',
+                description: s.description || '',
+                author: s.user_id || 'unknown',
+                compliance: s.compliance || 'pending',
+            };
+        },
         {
             onSuccess: (_data, variables) => {
-                // Invalidate both the specific snippet and the snippets list
                 queryClient.invalidateQueries(['snippet', variables.id]);
                 queryClient.invalidateQueries(['listSnippets']);
                 onSuccess();
@@ -61,17 +209,50 @@ export const useUpdateSnippetById = ({onSuccess, onError}: {onSuccess: () => voi
     );
 };
 
-export const useGetUsers = (page: number = 0, pageSize: number = 10, name?: string) => {
-    return useQuery<PaginatedUsers, Error>(['users', name, page, pageSize], () => snippetOperations.getUserFriends(page, pageSize, name));
+export const useDeleteSnippet = ({ onSuccess, onError }: { onSuccess?: () => void, onError?: (error: Error) => void } = {}) => {
+    const queryClient = useQueryClient();
+    return useMutation<void, Error, string>(
+        async (snippetId) => {
+            await axios.delete(`${SNIPPET_SERVICE_URL}/${snippetId}`, {
+                headers: getAuthHeaders(),
+            });
+        },
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['listSnippets']);
+                onSuccess?.();
+            },
+            onError,
+        }
+    );
 };
 
-export const useShareSnippet = ({onSuccess, onError}: {onSuccess?: () => void, onError?: (error: Error) => void} = {}) => {
+export const useGetUsers = (page: number = 0, pageSize: number = 10, name?: string) => {
+    return useQuery<PaginatedUsers, Error>(
+        ['users', name, page, pageSize],
+        async () => {
+            const response = await axios.get(`${SNIPPET_SERVICE_URL}/users`, {
+                headers: getAuthHeaders(),
+                params: { page, pageSize, name },
+            });
+            return response.data;
+        }
+    );
+};
+
+export const useShareSnippet = ({ onSuccess, onError }: { onSuccess?: () => void, onError?: (error: Error) => void } = {}) => {
     const queryClient = useQueryClient();
     return useMutation<Snippet, Error, { snippetId: string; userId: string }>(
-        ({snippetId, userId}) => snippetOperations.shareSnippet(snippetId, userId),
+        async ({ snippetId, userId }) => {
+            const response = await axios.post(
+                `${SNIPPET_SERVICE_URL}/${snippetId}/share`,
+                { userId },
+                { headers: getAuthHeaders() }
+            );
+            return response.data;
+        },
         {
             onSuccess: (_data, variables) => {
-                // Invalidate the specific snippet to refresh shared status
                 queryClient.invalidateQueries(['snippet', variables.snippetId]);
                 queryClient.invalidateQueries(['listSnippets']);
                 onSuccess?.();
@@ -82,119 +263,293 @@ export const useShareSnippet = ({onSuccess, onError}: {onSuccess?: () => void, o
 };
 
 export const useGetTestCases = (snippetId: string) => {
-    return useQuery<TestCase[] | undefined, Error>(['testCases', snippetId], () => snippetOperations.getTestCases(snippetId), {});
+    return useQuery<TestCase[] | undefined, Error>(
+        ['testCases', snippetId],
+        async () => {
+            const response = await axios.get(`${SNIPPET_SERVICE_URL}/${snippetId}/tests`, {
+                headers: getAuthHeaders(),
+            });
+            return response.data;
+        }
+    );
 };
 
 export const usePostTestCase = (snippetId: string) => {
     const queryClient = useQueryClient();
     return useMutation<TestCase, Error, Partial<TestCase>>(
-        (tc) => snippetOperations.postTestCase({...tc, snippetId} as Partial<TestCase>),
+        async (tc) => {
+            const response = await axios.post(
+                `${SNIPPET_SERVICE_URL}/${snippetId}/tests`,
+                { ...tc, snippetId },
+                { headers: getAuthHeaders() }
+            );
+            return response.data;
+        },
         {
             onSuccess: () => {
-                // Invalidate test cases for this snippet to refresh the UI
                 queryClient.invalidateQueries(['testCases', snippetId]);
             }
         }
     );
 };
 
-export const useRemoveTestCase = ({onSuccess}: {onSuccess: () => void}) => {
+export const useRemoveTestCase = ({ onSuccess }: { onSuccess: () => void }) => {
     const queryClient = useQueryClient();
-    return useMutation<string, Error, string>(
-        (id) => snippetOperations.removeTestCase(id),
-        {
-            onSuccess: (_data, id) => {
-                // Extract snippet ID from the test case ID to invalidate the correct cache
-                const snippetId = id.substring(0, 36);
-                queryClient.invalidateQueries(['testCases', snippetId]);
-                onSuccess();
-            },
-        }
-    );
-};
-
-export type TestCaseResult = "success" | "fail"
-
-export const useTestSnippet = () => {
-    const queryClient = useQueryClient();
-    return useMutation<TestCaseResult, Error, { id: string; envVars: string }>(
-        ({id, envVars}) => snippetOperations.testSnippet(id, envVars),
+    return useMutation<void, Error, { snippetId: string; testCaseId: string }>(
+        async ({ snippetId, testCaseId }) => {
+            await axios.delete(`${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testCaseId}`, {
+                headers: getAuthHeaders(),
+            });
+        },
         {
             onSuccess: (_data, variables) => {
-                // Extract snippet ID to invalidate test cases cache (in case test results affect the display)
-                const snippetId = variables.id.substring(0, 36);
-                queryClient.invalidateQueries(['testCases', snippetId]);
-            }
-        }
-    )
-}
-
-export const useGetFormatRules = () => {
-    return useQuery<Rule[], Error>('formatRules', () => snippetOperations.getFormatRules());
-}
-
-export const useModifyFormatRules = ({onSuccess}: {onSuccess: () => void}) => {
-    const queryClient = useQueryClient();
-    return useMutation<Rule[], Error, Rule[]>(
-        rule => snippetOperations.modifyFormatRule(rule),
-        {
-            onSuccess: () => {
-                // Invalidate format rules to refresh the UI
-                queryClient.invalidateQueries('formatRules');
+                queryClient.invalidateQueries(['testCases', variables.snippetId]);
                 onSuccess();
             }
         }
     );
-}
+};
+
+export const useGetFileTypes = () => {
+    return useQuery<FileType[], Error>(
+        ['fileTypes'],
+        async () => {
+            const response = await axios.get(`${BACKEND_URL}/api/languages`, {
+                headers: getAuthHeaders(),
+            });
+            const data = Array.isArray(response.data) ? response.data : [];
+            // Map backend Language objects to the FileType used by the UI
+            return data.map((item: any) => {
+                // Backend example: { id: 'printscript', name: 'PrintScript', extension: 'ps', description: '...' }
+                const id = item.id ?? item.language ?? item.name ?? '';
+                const ext = item.extension ?? item.ext ?? 'ps';
+                return {
+                    language: String(id).toLowerCase(),
+                    extension: String(ext).toLowerCase().replace(/^[.]/, ''),
+                    name: item.name,
+                    description: item.description,
+                    id: item.id,
+                } as FileType;
+            });
+        },
+        {
+            staleTime: Infinity,
+        }
+    );
+};
+
+export type TestCaseResult = {
+    id: string;
+    success: boolean;
+    output: string;
+};
+
+export const useRunTestCase = ({ onSuccess, onError }: { onSuccess?: (result: TestCaseResult) => void, onError?: (error: Error) => void } = {}) => {
+    return useMutation<TestCaseResult, Error, { snippetId: string; testCaseId: string }>(
+        async ({ snippetId, testCaseId }) => {
+            const response = await axios.post(
+                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testCaseId}/run`,
+                {},
+                { headers: getAuthHeaders() }
+            );
+            return response.data;
+        },
+        {
+            onSuccess,
+            onError,
+        }
+    );
+};
+
+export const useTestSnippet = ({ onSuccess, onError }: { onSuccess?: (result: TestCaseResult) => void, onError?: (error: Error) => void } = {}) => {
+    return useMutation<TestCaseResult, Error, { snippetId: string; testCase: Partial<TestCase> }>(
+        async ({ snippetId, testCase }) => {
+            const response = await axios.post(
+                `${SNIPPET_SERVICE_URL}/${snippetId}/test`,
+                testCase,
+                { headers: getAuthHeaders() }
+            );
+            return response.data;
+        },
+        {
+            onSuccess,
+            onError,
+        }
+    );
+};
+
+// ============= FORMATTING RULES =============
+
+export const useGetFormattingRules = () => {
+    return useQuery<FormattingRule[], Error>(
+        ['formattingRules'],
+        async () => {
+            const userId = getUserId();
+            if (!userId) {
+                throw new Error('User ID not found');
+            }
+            const encodedUserId = encodeURIComponent(userId);
+            const response = await axios.get(`${CODE_ANALYSIS_URL}/rules/format/${encodedUserId}`, {
+                headers: getAuthHeaders({ contentType: false }), // GET -> no content-type, but include correlation
+            });
+            const data = Array.isArray(response.data) ? response.data : [];
+            return data.map(fromBackendRule) as FormattingRule[];
+        },
+        {
+            enabled: !!getToken() && !!getUserId(),
+            retry: 1,
+        }
+    );
+};
+
+export const useSaveFormattingRules = ({
+    onSuccess,
+    onError
+}: {
+    onSuccess?: () => void;
+    onError?: (error: Error) => void;
+} = {}) => {
+    const queryClient = useQueryClient();
+
+    return useMutation<FormattingRule[], Error, { rules: FormattingRule[] }>(
+        async ({ rules }) => {
+            const userId = getUserId();
+            if (!userId) {
+                throw new Error('User ID not found');
+            }
+            const encodedUserId = encodeURIComponent(userId);
+            // Validar mínima forma: cada rule debe tener id y name
+            const toSend = (rules || []).map(toBackendRule);
+
+            // El API espera una lista JSON directa y método POST (/rules/format/{userId})
+            const response = await axios.post(
+                `${CODE_ANALYSIS_URL}/rules/format/${encodedUserId}`,
+                toSend,
+                { headers: getAuthHeaders() }
+            );
+
+            const data = Array.isArray(response.data) ? response.data : [];
+            return data.map(fromBackendRule) as FormattingRule[];
+        },
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['formattingRules']);
+                onSuccess?.();
+            },
+            onError,
+        }
+    );
+};
+
+export const useFormatSnippet = ({
+    onSuccess,
+    onError
+}: {
+    onSuccess?: (formattedContent: string) => void;
+    onError?: (error: Error) => void;
+} = {}) => {
+    return useMutation<FormattingResponse, Error, { snippetId: string }>(
+        async ({ snippetId }) => {
+            const response = await axios.post(
+                `${CODE_ANALYSIS_URL}/format`,
+                { snippetId },
+                { headers: getAuthHeaders() }
+            );
+            return response.data;
+        },
+        {
+            onSuccess: (data) => {
+                onSuccess?.(data.formattedContent);
+            },
+            onError,
+        }
+    );
+};
+
+// ============= LINTING RULES =============
 
 export const useGetLintingRules = () => {
-    return useQuery<Rule[], Error>('lintingRules', () => snippetOperations.getLintingRules());
-}
-
-export const useModifyLintingRules = ({onSuccess}: {onSuccess: () => void}) => {
-    const queryClient = useQueryClient();
-    return useMutation<Rule[], Error, Rule[]>(
-        rule => snippetOperations.modifyLintingRule(rule),
-        {
-            onSuccess: () => {
-                // Invalidate linting rules to refresh the UI
-                queryClient.invalidateQueries('lintingRules');
-                onSuccess();
+    return useQuery<LintingRule[], Error>(
+        ['lintingRules'],
+        async () => {
+            const userId = getUserId();
+            if (!userId) {
+                throw new Error('User ID not found');
             }
-        }
-    );
-}
-
-export const useFormatSnippet = (snippetId: string, language: string) => {
-    const queryClient = useQueryClient();
-    return useMutation<string, Error, void>(
-        () => snippetOperations.formatSnippet(snippetId, language),
+            const encodedUserId = encodeURIComponent(userId);
+            const response = await axios.get(`${CODE_ANALYSIS_URL}/rules/lint/${encodedUserId}`, {
+                headers: getAuthHeaders({ contentType: false }),
+            });
+            const data = Array.isArray(response.data) ? response.data : [];
+            return data.map(fromBackendRule) as LintingRule[];
+        },
         {
-            onSuccess: () => {
-                // Invalidate the specific snippet to refresh its content
-                queryClient.invalidateQueries(['snippet', snippetId]);
-            }
-        }
-    );
-}
-
-export const useDeleteSnippet = ({onSuccess}: {onSuccess: () => void}) => {
-    const queryClient = useQueryClient();
-    return useMutation<string, Error, string>(
-        id => snippetOperations.deleteSnippet(id),
-        {
-            onSuccess: (_data, id) => {
-                // Invalidate both the specific snippet and the snippets list
-                queryClient.invalidateQueries(['snippet', id]);
-                queryClient.invalidateQueries(['listSnippets']);
-                queryClient.invalidateQueries(['testCases', id]); // Also remove test cases for this snippet
-                onSuccess();
+            enabled: !!getToken() && !!getUserId(),
+            retry: 1,
+            onError: (error: any) => {
+                console.error('Error fetching linting rules:', error);
             },
         }
     );
-}
+};
 
+export const useSaveLintingRules = ({
+    onSuccess,
+    onError
+}: {
+    onSuccess?: () => void;
+    onError?: (error: Error) => void;
+} = {}) => {
+    const queryClient = useQueryClient();
 
-export const useGetFileTypes = () => {
-    return useQuery<FileType[], Error>('fileTypes', () => snippetOperations.getFileTypes());
-}
+    return useMutation<LintingRule[], Error, { rules: LintingRule[] }>(
+        async ({ rules }) => {
+            const userId = getUserId();
+            if (!userId) {
+                throw new Error('User ID not found');
+            }
+            const encodedUserId = encodeURIComponent(userId);
+            const toSend = (rules || []).map(toBackendRule);
+            const response = await axios.post(
+                `${CODE_ANALYSIS_URL}/rules/lint/${encodedUserId}`,
+                toSend,
+                { headers: getAuthHeaders() }
+            );
+            const data = Array.isArray(response.data) ? response.data : [];
+            return data.map(fromBackendRule) as LintingRule[];
+        },
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['lintingRules']);
+                queryClient.invalidateQueries(['listSnippets']); // Refresh snippets to show updated compliance
+                onSuccess?.();
+            },
+            onError,
+        }
+    );
+};
+
+export const useLintSnippet = ({
+    onSuccess,
+    onError
+}: {
+    onSuccess?: (response: LintingResponse) => void;
+    onError?: (error: Error) => void;
+} = {}) => {
+    return useMutation<LintingResponse, Error, { snippetId: string }>(
+        async ({ snippetId }) => {
+            const response = await axios.post(
+                `${CODE_ANALYSIS_URL}/lint`,
+                { snippetId },
+                { headers: getAuthHeaders() }
+            );
+            return response.data;
+        },
+        {
+            onSuccess: (data) => {
+                onSuccess?.(data);
+            },
+            onError,
+        }
+    );
+};

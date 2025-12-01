@@ -1,97 +1,56 @@
-import React, {useEffect, useState} from 'react';
-import {
-  Button,
-  Card,
-  Checkbox,
-  List,
-  ListItem,
-  ListItemText, TextField,
-  Typography
-} from "@mui/material";
-import {useGetLintingRules, useModifyLintingRules} from "../../utils/queries.tsx";
-import {queryClient} from "../../App.tsx";
-import {Rule} from "../../types/Rule.ts";
+import React from 'react';
+import { RulesListBase } from '../common/RulesListBase';
+import { LintingRule } from '../../types/Rule';
+import { useGetLintingRules, useSaveLintingRules } from '../../utils/queries';
+import { useSnackbarContext } from '../../contexts/snackbarContext';
 
-const LintingRulesList = () => {
-  const [rules, setRules] = useState<Rule[] | undefined>([]);
-
-  const {data, isLoading} = useGetLintingRules();
-  const {mutateAsync, isLoading: isLoadingMutate} = useModifyLintingRules({
-    onSuccess: () => queryClient.invalidateQueries('lintingRules')
-  })
-
-  useEffect(() => {
-    setRules(data)
-  }, [data]);
-
-  const handleValueChange = (rule: Rule, newValue: string | number) => {
-    const newRules = rules?.map(r => {
-      if (r.name === rule.name) {
-        return {...r, value: newValue}
-      } else {
-        return r;
-      }
-    })
-    setRules(newRules)
-  };
-
-  const handleNumberChange = (rule: Rule) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(event.target.value, 10);
-    handleValueChange(rule, isNaN(value) ? 0 : value);
-  };
-
-  const toggleRule = (rule: Rule) => () => {
-    const newRules = rules?.map(r => {
-      if (r.name === rule.name) {
-        return {...r, isActive: !r.isActive}
-      } else {
-        return r;
-      }
-    })
-    setRules(newRules)
-  }
-
-  return (
-    <Card style={{padding: 16, margin: 16}}>
-      <Typography variant={"h6"}>Linting rules</Typography>
-      <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
-        {
-          isLoading || isLoadingMutate ?  <Typography style={{height: 80}}>Loading...</Typography> :
-          rules?.map((rule) => {
-          return (
-            <ListItem
-              key={rule.name}
-              disablePadding
-              style={{height: 40}}
-            >
-              <Checkbox
-                edge="start"
-                checked={rule.isActive}
-                disableRipple
-                onChange={toggleRule(rule)}
-              />
-              <ListItemText primary={rule.name} />
-              {typeof rule.value === 'number' ?
-                (<TextField
-                  type="number"
-                  variant={"standard"}
-                  value={rule.value}
-                  onChange={handleNumberChange(rule)}
-                />) : typeof rule.value === 'string' ?
-                  (<TextField
-                    variant={"standard"}
-                    value={rule.value}
-                    onChange={e => handleValueChange(rule, e.target.value)}
-                  />) : null
-              }
-            </ListItem>
-          )
-        })}
-      </List>
-      <Button disabled={isLoading} variant={"contained"} onClick={() => mutateAsync(rules ?? [])}>Save</Button>
-    </Card>
-
-  );
+const LINTING_RULE_CONFIGS = {
+    identifierFormat: {
+        description: 'Formato de nomenclatura de variables',
+        possibleValues: ['camelCase', 'snake_case'],
+        type: 'string' as const,
+    },
+    printlnUsage: {
+        description: 'Verificar uso correcto de println',
+        possibleValues: [true, false],
+        type: 'boolean' as const,
+    },
+    readInputUsage: {
+        description: 'Verificar uso correcto de readInput',
+        possibleValues: [true, false],
+        type: 'boolean' as const,
+    },
 };
 
-export default LintingRulesList;
+export const LintingRulesList: React.FC = () => {
+    const { data: lintingRules, isLoading, error } = useGetLintingRules();
+    const { createSnackbar } = useSnackbarContext();
+
+    const { mutateAsync: saveRules, isLoading: isSaving } = useSaveLintingRules({
+        onSuccess: () => {
+            createSnackbar('success', '¡Reglas guardadas exitosamente! Tus snippets se están analizando con las nuevas reglas de linting.');
+        },
+        onError: (error) => {
+            createSnackbar('error', `Error al guardar las reglas: ${error.message}`);
+        },
+    });
+
+    const handleSave = async (rules: LintingRule[]) => {
+        await saveRules({ rules });
+    };
+
+    return (
+        <RulesListBase
+            title="Reglas de Linting"
+            rules={lintingRules}
+            isLoading={isLoading}
+            error={error}
+            onSave={handleSave}
+            isSaving={isSaving}
+            ruleConfigs={LINTING_RULE_CONFIGS}
+            successMessage="Al guardar, todos tus snippets se analizarán automáticamente para verificar el cumplimiento de las reglas."
+            updateMessage="Los snippets se están analizando con las nuevas reglas. Este proceso puede tardar unos momentos y es tolerante a fallos..."
+        />
+    );
+};
+
