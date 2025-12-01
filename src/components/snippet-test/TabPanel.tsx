@@ -113,8 +113,8 @@ export const TabPanel = ({value, index, test: initialTest, snippetId, setTestCas
                         </Button>
                         <Button 
                             onClick={() => {
-                                const envVars = testData?.input?.join(',') || '';
-                                testSnippet({ id: testData?.id ?? '', envVars });
+                                if (!testData?.id) return;
+                                testSnippet({ snippetId, testCase: testData });
                             }} 
                             variant={"contained"} 
                             startIcon={<BugReport/>}
@@ -122,7 +122,7 @@ export const TabPanel = ({value, index, test: initialTest, snippetId, setTestCas
                             disableElevation>
                             Test
                         </Button>
-                        {data && (data === "success" ? <Chip label="Pass" color="success"/> :
+                        {data && (data.success ? <Chip label="Pass" color="success"/> :
                             <Chip label="Fail" color="error"/>)}
                     </Box>
                 </Box>

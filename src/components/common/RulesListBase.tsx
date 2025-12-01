@@ -237,11 +237,10 @@ export function RulesListBase<T extends Rule>({
                                                         const val = e.target.value;
                                                         let parsedValue: boolean | number | string = val;
 
-                                                        if (derivedType === 'number') {
-                                                            parsedValue = Number(val);
-                                                        } else if (derivedType === 'boolean') {
+                                                        if (derivedType === 'boolean') {
                                                             parsedValue = val === 'true';
                                                         }
+                                                        // else it's a string, keep as is
 
                                                         handleValueChange(rule.id, parsedValue);
                                                     }}

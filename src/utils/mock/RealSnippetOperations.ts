@@ -592,10 +592,18 @@ export class RealSnippetOperations implements SnippetOperations {
             // This means:
             // - If expected_status is VALID: test passes if snippet executed successfully and outputs match
             // - If expected_status is INVALID: test passes if snippet failed as expected
-            return response.data.passed ? 'success' : 'fail';
+            return {
+                id: response.data.id || '',
+                success: response.data.passed || false,
+                output: response.data.output || ''
+            };
         } catch (error: any) {
             console.error('Error executing test:', error);
-            return 'fail';
+            return {
+                id: '',
+                success: false,
+                output: error.message || 'Test execution failed'
+            };
         }
     }
 

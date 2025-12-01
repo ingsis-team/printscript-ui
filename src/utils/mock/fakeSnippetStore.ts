@@ -80,6 +80,7 @@ const INITIAL_FORMATTING_RULES: Rule[] = [
     id: '2',
     name: "open-if-block-on-same-line",
     isActive: false,
+    value: false,
   },
   {
     id: '3',
@@ -259,7 +260,12 @@ export class FakeSnippetStore {
   }
 
   testSnippet(): TestCaseResult {
-    return Math.random() > 0.5 ? "success" : "fail"
+    const success = Math.random() > 0.5;
+    return {
+      id: '',
+      success,
+      output: success ? 'Test passed' : 'Test failed'
+    };
   }
 
   getFileTypes(): FileType[] {
