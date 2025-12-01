@@ -286,7 +286,17 @@ export const useGetTestCases = (snippetId: string) => {
             const response = await axios.get(`${SNIPPET_SERVICE_URL}/${snippetId}/tests`, {
                 headers: getAuthHeaders(),
             });
-            return response.data;
+
+            // Map backend response to frontend format
+            const backendTests = Array.isArray(response.data) ? response.data : [];
+            return backendTests.map((test: any) => ({
+                id: test.id,
+                name: test.name,
+                input: test.inputs || [],
+                output: test.expected_outputs || [],
+                snippetId: test.snippet_id || snippetId,
+                expected_status: test.expected_status || 'VALID'
+            }));
         }
     );
 };
@@ -297,10 +307,25 @@ export const usePostTestCase = (snippetId: string) => {
         async (tc) => {
             const response = await axios.post(
                 `${SNIPPET_SERVICE_URL}/${snippetId}/tests`,
-                { ...tc, snippetId },
+                {
+                    name: tc.name,
+                    inputs: Array.isArray(tc.input) ? tc.input : [],
+                    expected_outputs: Array.isArray(tc.output) ? tc.output : [],
+                    expected_status: tc.expected_status || 'VALID'
+                },
                 { headers: getAuthHeaders() }
             );
-            return response.data;
+
+            // Map backend response to frontend format
+            const backendData = response.data;
+            return {
+                id: backendData.id,
+                name: backendData.name,
+                input: backendData.inputs || [],
+                output: backendData.expected_outputs || [],
+                snippetId: backendData.snippet_id || snippetId,
+                expected_status: backendData.expected_status || 'VALID'
+            };
         },
         {
             onSuccess: () => {
@@ -356,16 +381,19 @@ export const useGetFileTypes = () => {
 };
 
 export type TestCaseResult = {
-    id: string;
-    success: boolean;
-    output: string;
+    passed: boolean;
+    expectedStatus: string;
+    expectedOutputs: string[];
+    actualOutputs: string[];
+    executionFailed: boolean;
+    message: string;
 };
 
 export const useRunTestCase = ({ onSuccess, onError }: { onSuccess?: (result: TestCaseResult) => void, onError?: (error: Error) => void } = {}) => {
     return useMutation<TestCaseResult, Error, { snippetId: string; testCaseId: string }>(
         async ({ snippetId, testCaseId }) => {
             const response = await axios.post(
-                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testCaseId}/run`,
+                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testCaseId}/execute`,
                 {},
                 { headers: getAuthHeaders() }
             );

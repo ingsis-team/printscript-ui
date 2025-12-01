@@ -15,7 +15,7 @@ type TestSnippetModalProps = {
 export const TestSnippetModal = ({open, onClose, snippetId}: TestSnippetModalProps) => {
     const [value, setValue] = useState(0);
 
-    const {data: testCases} = useGetTestCases(snippetId);
+    const {data: testCases, refetch} = useGetTestCases(snippetId);
     const {mutateAsync: postTestCase} = usePostTestCase(snippetId);
     const {mutateAsync: removeTestCase} = useRemoveTestCase({
         onSuccess: () => queryClient.invalidateQueries('testCases')
@@ -23,21 +23,31 @@ export const TestSnippetModal = ({open, onClose, snippetId}: TestSnippetModalPro
     
     const handleSaveTest = async (test: Partial<import("../../types/TestCase.ts").TestCase>) => {
         const savedTest = await postTestCase(test);
-        // Refresh test cases list
-        await queryClient.invalidateQueries(['testCases', snippetId]);
-        // Wait a bit for the query to refetch
-        setTimeout(() => {
-            const currentTestCases = queryClient.getQueryData<typeof testCases>(['testCases', snippetId]);
-            // Find the index of the newly saved test
-            const newIndex = currentTestCases?.findIndex(tc => tc.id === savedTest.id) ?? 0;
-            setValue(newIndex);
-        }, 100);
+
+        // Immediately refetch to get updated list
+        await refetch();
+
+        // Wait for the refetch to complete and update the state
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // Get the updated test cases from the cache
+        const updatedTestCases = queryClient.getQueryData<typeof testCases>(['testCases', snippetId]);
+
+        // Find the index of the newly saved test
+        const newIndex = updatedTestCases?.findIndex(tc => tc.id === savedTest.id) ?? 0;
+
+        // Switch to the new test's tab
+        setValue(newIndex);
+
         return savedTest;
     };
 
     const handleChange = (_: SyntheticEvent, newValue: number) => {
         setValue(newValue);
     };
+
+    // Calculate the index for the "add new test" tab
+    const addNewTestIndex = (testCases?.length ?? 0);
 
     return (
         <ModalWrapper open={open} onClose={onClose}>
@@ -55,7 +65,7 @@ export const TestSnippetModal = ({open, onClose, snippetId}: TestSnippetModalPro
                     {testCases?.map((testCase, index) => (
                         <Tab key={testCase.id || index} label={testCase.name}/>
                     ))}
-                    <IconButton disableRipple onClick={() => setValue((testCases?.length ?? 0) + 1)}>
+                    <IconButton disableRipple onClick={() => setValue(addNewTestIndex)}>
                         <AddRounded />
                     </IconButton>
                 </Tabs>
@@ -65,7 +75,7 @@ export const TestSnippetModal = ({open, onClose, snippetId}: TestSnippetModalPro
                               removeTestCase={(testCaseId) => removeTestCase({ snippetId, testCaseId })}
                     />
                 ))}
-                <TabPanel index={(testCases?.length ?? 0) + 1} value={value} snippetId={snippetId}
+                <TabPanel index={addNewTestIndex} value={value} snippetId={snippetId}
                           setTestCase={handleSaveTest}
                 />
             </Box>
