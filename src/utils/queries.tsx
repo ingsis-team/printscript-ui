@@ -259,8 +259,11 @@ export const useShareSnippet = ({ onSuccess, onError }: { onSuccess?: () => void
     return useMutation<Snippet, Error, { snippetId: string; userId: string }>(
         async ({ snippetId, userId }) => {
             const response = await axios.post(
-                `${SNIPPET_SERVICE_URL}/${snippetId}/share`,
-                { userId },
+                `${SNIPPET_SERVICE_URL}/share`,
+                {
+                    snippet_id: snippetId,
+                    target_user_id: userId
+                },
                 { headers: getAuthHeaders() }
             );
             return response.data;
