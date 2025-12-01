@@ -389,6 +389,23 @@ export type TestCaseResult = {
     message: string;
 };
 
+export type RunAllTestsResult = {
+    test_id: string;
+    test_name: string;
+    passed: boolean;
+    actual_outputs: string[];
+    expected_outputs: string[];
+    errors: string[];
+};
+
+export type RunAllTestsResponse = {
+    snippet_id: string;
+    total_tests: number;
+    passed_tests: number;
+    failed_tests: number;
+    results: RunAllTestsResult[];
+};
+
 export const useRunTestCase = ({ onSuccess, onError }: { onSuccess?: (result: TestCaseResult) => void, onError?: (error: Error) => void } = {}) => {
     return useMutation<TestCaseResult, Error, { snippetId: string; testCaseId: string }>(
         async ({ snippetId, testCaseId }) => {
@@ -406,12 +423,12 @@ export const useRunTestCase = ({ onSuccess, onError }: { onSuccess?: (result: Te
     );
 };
 
-export const useTestSnippet = ({ onSuccess, onError }: { onSuccess?: (result: TestCaseResult) => void, onError?: (error: Error) => void } = {}) => {
-    return useMutation<TestCaseResult, Error, { snippetId: string; testCase: Partial<TestCase> }>(
-        async ({ snippetId, testCase }) => {
+export const useRunAllTests = ({ onSuccess, onError }: { onSuccess?: (result: RunAllTestsResponse) => void, onError?: (error: Error) => void } = {}) => {
+    return useMutation<RunAllTestsResponse, Error, { snippetId: string }>(
+        async ({ snippetId }) => {
             const response = await axios.post(
-                `${SNIPPET_SERVICE_URL}/${snippetId}/test`,
-                testCase,
+                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/run-all`,
+                {},
                 { headers: getAuthHeaders() }
             );
             return response.data;

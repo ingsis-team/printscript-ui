@@ -120,15 +120,21 @@ export const TabPanel = ({value, index, test: initialTest, snippetId, setTestCas
                                 </Typography>
                                 <Box mt={1}>
                                     <Typography variant="caption" display="block">
-                                        <strong>Expected Status:</strong> {testResult.expectedStatus}
+                                        <strong>Expected Status:</strong> {testResult.expected_status}
                                     </Typography>
                                     <Typography variant="caption" display="block">
-                                        <strong>Expected Outputs:</strong> [{testResult.expectedOutputs.join(', ')}]
+                                        <strong>Expected Outputs:</strong>
                                     </Typography>
+                                    <pre style={{ margin: '4px 0', backgroundColor: '#f5f5f5', padding: '8px', borderRadius: '4px', overflow: 'auto' }}>
+                                        [{(testResult.expected_outputs || []).join(', ')}]
+                                    </pre>
                                     <Typography variant="caption" display="block">
-                                        <strong>Actual Outputs:</strong> [{testResult.actualOutputs.join(', ')}]
+                                        <strong>Actual Outputs:</strong>
                                     </Typography>
-                                    {testResult.executionFailed && (
+                                    <pre style={{ margin: '4px 0', backgroundColor: '#f5f5f5', padding: '8px', borderRadius: '4px', overflow: 'auto' }}>
+                                        [{(testResult.actual_outputs || []).join(', ')}]
+                                    </pre>
+                                    {testResult.execution_failed && (
                                         <Typography variant="caption" display="block" color="error">
                                             <strong>Execution Failed</strong>
                                         </Typography>

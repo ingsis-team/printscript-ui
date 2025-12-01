@@ -23,12 +23,12 @@ const FORMATTING_RULE_CONFIGS = {
     },
     lineBreak: {
         description: 'Número de saltos de línea entre declaraciones',
-        possibleValues: [1, 2, 3],
+        possibleValues: [1, 2, 3, 4],
         type: 'number' as const,
     },
     lineBreakPrintln: {
         description: 'Número de saltos de línea antes de println',
-        possibleValues: [1, 2, 3],
+        possibleValues: [1, 2],
         type: 'number' as const,
     },
     conditionalIndentation: {

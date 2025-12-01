@@ -4,10 +4,10 @@ import {highlight, languages} from "prismjs";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism-okaidia.css";
-import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography} from "@mui/material";
+import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-    useUpdateSnippetById
+    useUpdateSnippetById, useRunAllTests, RunAllTestsResponse
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById, useShareSnippet} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
@@ -60,6 +60,8 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [shareModalOppened, setShareModalOppened] = useState(false)
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] = useState(false)
   const [testModalOpened, setTestModalOpened] = useState(false);
+  const [openResultsModal, setOpenResultsModal] = useState(false);
+  const [testResults, setTestResults] = useState<RunAllTestsResponse | null>(null);
   const uploadFileRef = useRef<HTMLInputElement>(null);
   const {createSnackbar} = useSnackbarContext();
 
@@ -84,7 +86,9 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     const {mutate: updateSnippet, isLoading: isUpdateSnippetLoading} = useUpdateSnippetById({
         onSuccess: () => {
             queryClient.invalidateQueries(['snippet', id])
-            createSnackbar('success', 'Snippet updated successfully!')
+            createSnackbar('success', 'Snippet updated successfully! Running tests...')
+            // Run all tests automatically after updating
+            runAllTests({ snippetId: id })
         },
         onError: (error: Error) => {
             // Handle different types of errors
@@ -98,6 +102,15 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             } else {
                 createSnackbar('error', errorMessage)
             }
+        }
+    })
+    const {mutate: runAllTests, isLoading: loadingTests} = useRunAllTests({
+        onSuccess: (data) => {
+            setTestResults(data);
+            setOpenResultsModal(true);
+        },
+        onError: (error: Error) => {
+            createSnackbar('error', error.message || 'Failed to run tests')
         }
     })
 
@@ -274,7 +287,89 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
         <DeleteConfirmationModal open={deleteConfirmationModalOpen} onClose={() => setDeleteConfirmationModalOpen(false)} id={snippet?.id ?? ""} setCloseDetails={handleCloseModal} />
         <input hidden type={"file"} ref={uploadFileRef} multiple={false}
                onChange={e => handleLoadFileForUpdate(e?.target)}/>
+        <Dialog open={openResultsModal} onClose={() => setOpenResultsModal(false)} maxWidth="md" fullWidth>
+          <DialogTitle>Test Results</DialogTitle>
+          <DialogContent>
+            {loadingTests ? (
+              <Box display="flex" flexDirection="column" alignItems="center" gap={2} py={3}>
+                <CircularProgress />
+                <Typography variant="body1">Running all tests...</Typography>
+              </Box>
+            ) : testResults ? (
+              <Box>
+                <Typography variant="h6" gutterBottom>
+                  Summary
+                </Typography>
+                <Typography variant="body1">
+                  Total Tests: <strong>{testResults.total_tests}</strong>
+                </Typography>
+                <Typography variant="body1" color="success.main">
+                  Passed: <strong>{testResults.passed_tests}</strong>
+                </Typography>
+                {testResults.failed_tests > 0 && (
+                  <Typography variant="body1" color="error.main">
+                    Failed: <strong>{testResults.failed_tests}</strong>
+                  </Typography>
+                )}
+
+                {testResults.total_tests === 0 ? (
+                  <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+                    No tests found for this snippet.
+                  </Typography>
+                ) : (
+                  <Box mt={3}>
+                    <Typography variant="h6" gutterBottom>
+                      Test Details:
+                    </Typography>
+                    {testResults.results.map((result, index) => (
+                      <Box key={index} mb={2} p={2} sx={{
+                        border: '1px solid',
+                        borderColor: result.passed ? 'success.main' : 'error.main',
+                        borderRadius: 1,
+                        backgroundColor: result.passed ? 'rgba(76, 175, 80, 0.1)' : 'rgba(211, 47, 47, 0.1)'
+                      }}>
+                        <Typography variant="subtitle1" fontWeight="bold" color={result.passed ? 'success.main' : 'error.main'}>
+                          {result.passed ? '✅' : '❌'} {result.test_name}
+                        </Typography>
+                        <Box mt={1}>
+                          <Typography variant="body2" color="text.secondary" fontWeight="bold">
+                            Expected Outputs:
+                          </Typography>
+                          <pre style={{ margin: '4px 0', backgroundColor: '#f5f5f5', padding: '8px', borderRadius: '4px', overflow: 'auto' }}>
+                            {(result.expected_outputs || []).join(', ') || 'No output'}
+                          </pre>
+                        </Box>
+                        <Box mt={1}>
+                          <Typography variant="body2" color="text.secondary" fontWeight="bold">
+                            Actual Outputs:
+                          </Typography>
+                          <pre style={{ margin: '4px 0', backgroundColor: '#f5f5f5', padding: '8px', borderRadius: '4px', overflow: 'auto' }}>
+                            {(result.actual_outputs || []).join(', ') || 'No output'}
+                          </pre>
+                        </Box>
+                        {result.errors && result.errors.length > 0 && (
+                          <Box mt={1}>
+                            <Typography variant="body2" color="error" fontWeight="bold">
+                              Errors:
+                            </Typography>
+                            <pre style={{ margin: '4px 0', backgroundColor: '#ffebee', padding: '8px', borderRadius: '4px', overflow: 'auto' }}>
+                              {(result.errors || []).join('\n')}
+                            </pre>
+                          </Box>
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            ) : null}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenResultsModal(false)} color="primary" variant="contained">
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box> : <Login/>
   );
 }
-
