@@ -143,15 +143,11 @@ export function RulesListBase<T extends Rule>({
                             const derivedDescription = (rule.description && String(rule.description)) ?? config?.description ?? 'Sin descripción';
 
                             // Inferir tipo y posibles valores
-                            let derivedType: 'boolean' | 'number' | 'string' = 'string';
-                            let derivedPossibleValues: (boolean | number | string)[] | undefined = undefined;
+                            let derivedType: 'boolean' | 'number' | 'string' = (config?.type as any) ?? 'string';
+                            let derivedPossibleValues: (boolean | number | string)[] | undefined = config?.possibleValues;
 
-                            // Si existe una configuración para esta regla, úsala
-                            if (config) {
-                                derivedType = config.type;
-                                derivedPossibleValues = config.possibleValues;
-                            } else {
-                                // Solo si NO existe configuración, inferir desde rule.value
+                            if (!derivedPossibleValues || derivedPossibleValues.length === 0) {
+                                // Inferir desde rule.value
                                 if (typeof rule.value === 'boolean') {
                                     derivedType = 'boolean';
                                     derivedPossibleValues = [true, false];

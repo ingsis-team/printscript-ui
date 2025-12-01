@@ -55,12 +55,17 @@ const fromBackendFormattingRule = (r: any): FormattingRule => ({
     description: r.description ?? undefined,
 });
 
-const fromBackendLintingRule = (r: any): LintingRule => ({
-    id: r.id ? String(r.id) : undefined,
-    name: String(r.name),
-    value: r.value ?? null,
-    description: r.description ?? undefined,
-});
+const fromBackendLintingRule = (r: any): LintingRule => {
+    const rule: LintingRule = {
+        name: String(r.name),
+        value: r.value ?? null,
+        description: r.description ?? undefined,
+    };
+    if (r.id) {
+        rule.id = String(r.id);
+    }
+    return rule;
+};
 
 // ============= SNIPPET QUERIES =============
 
@@ -533,6 +538,86 @@ export const useLintSnippet = ({
         },
         {
             onSuccess: (data) => {
+                onSuccess?.(data);
+            },
+            onError,
+        }
+    );
+};
+
+export type FormatAllResponse = {
+    totalSnippets: number;
+    successfullyFormatted: number;
+    failed: number;
+    results: Array<{
+        snippetId: string;
+        snippetName: string;
+        success: boolean;
+        errorMessage: string | null;
+    }>;
+};
+
+export type LintAllResponse = {
+    totalSnippets: number;
+    snippetsWithIssues: number;
+    snippetsWithoutIssues: number;
+    results: Array<{
+        snippetId: string;
+        snippetName: string;
+        issuesCount: number;
+        issues: LintingIssue[];
+    }>;
+};
+
+export const useFormatAllSnippets = ({
+    onSuccess,
+    onError
+}: {
+    onSuccess?: (response: FormatAllResponse) => void;
+    onError?: (error: Error) => void;
+} = {}) => {
+    const queryClient = useQueryClient();
+
+    return useMutation<FormatAllResponse, Error, void>(
+        async () => {
+            const response = await axios.post(
+                `${BACKEND_URL}/format/all`,
+                {},
+                { headers: getAuthHeaders() }
+            );
+            return response.data;
+        },
+        {
+            onSuccess: (data) => {
+                queryClient.invalidateQueries(['listSnippets']);
+                onSuccess?.(data);
+            },
+            onError,
+        }
+    );
+};
+
+export const useLintAllSnippets = ({
+    onSuccess,
+    onError
+}: {
+    onSuccess?: (response: LintAllResponse) => void;
+    onError?: (error: Error) => void;
+} = {}) => {
+    const queryClient = useQueryClient();
+
+    return useMutation<LintAllResponse, Error, void>(
+        async () => {
+            const response = await axios.post(
+                `${BACKEND_URL}/lint/all`,
+                {},
+                { headers: getAuthHeaders() }
+            );
+            return response.data;
+        },
+        {
+            onSuccess: (data) => {
+                queryClient.invalidateQueries(['listSnippets']);
                 onSuccess?.(data);
             },
             onError,

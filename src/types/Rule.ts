@@ -16,6 +16,8 @@ export interface FormattingRule extends Rule {
 
 export interface LintingRule extends Rule {
   // marker interface for linting-related rules
+  // linting rules may have an id field
+  id?: string;
 }
 
 // Linting Issue
