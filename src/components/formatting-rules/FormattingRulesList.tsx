@@ -129,10 +129,10 @@ export const FormattingRulesList: React.FC = () => {
                                 Resumen
                             </Typography>
                             <Typography variant="body1">
-                                Total de snippets: <strong>{formatResult.totalSnippets}</strong>
+                                Total de snippets: <strong>{formatResult.total_snippets}</strong>
                             </Typography>
                             <Typography variant="body1" color="success.main">
-                                Formateados exitosamente: <strong>{formatResult.successfullyFormatted}</strong>
+                                Formateados exitosamente: <strong>{formatResult.successfully_formatted}</strong>
                             </Typography>
                             {formatResult.failed > 0 && (
                                 <Typography variant="body1" color="error.main">
@@ -148,9 +148,9 @@ export const FormattingRulesList: React.FC = () => {
                                     {formatResult.results
                                         .filter(r => !r.success)
                                         .map((result) => (
-                                            <Box key={result.snippetId} mt={1} p={1} bgcolor="error.light" borderRadius={1}>
+                                            <Box key={result.snippet_id} mt={1} p={1} bgcolor="error.light" borderRadius={1}>
                                                 <Typography variant="body2">
-                                                    <strong>{result.snippetName}</strong>: {result.errorMessage}
+                                                    <strong>{result.snippet_name}</strong>: {result.errorMessage}
                                                 </Typography>
                                             </Box>
                                         ))}

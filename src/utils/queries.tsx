@@ -1,14 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import axios from 'axios';
 import { BACKEND_URL, PRINTSCRIPT_SERVICE_URL } from './constants';
-import { FormattingRule, LintingRule, FormattingResponse, LintingResponse } from '../types/Rule';
+import {FormattingRule, LintingRule, FormattingResponse, LintingResponse, LintingIssue} from '../types/Rule';
 import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from './snippet';
 import { PaginatedUsers } from './users';
 import { TestCase } from '../types/TestCase';
 import { FileType } from '../types/FileType';
+import { RealSnippetOperations } from './mock/RealSnippetOperations';
 
 const getToken = () => localStorage.getItem('token') || '';
 const getUserId = () => localStorage.getItem('userId') || '';
+
+// Create a single instance of RealSnippetOperations to use across queries
+const snippetOperations = new RealSnippetOperations();
 
 // Helper: generar correlation id (usa crypto.randomUUID cuando está disponible)
 const generateCorrelationId = () => {
@@ -244,11 +248,8 @@ export const useGetUsers = (page: number = 0, pageSize: number = 10, name?: stri
     return useQuery<PaginatedUsers, Error>(
         ['users', name, page, pageSize],
         async () => {
-            const response = await axios.get(`${SNIPPET_SERVICE_URL}/users`, {
-                headers: getAuthHeaders(),
-                params: { page, pageSize, name },
-            });
-            return response.data;
+            // Use snippetOperations.getUserFriends instead of direct axios call
+            return await snippetOperations.getUserFriends(page, pageSize, name);
         }
     );
 };
@@ -546,25 +547,25 @@ export const useLintSnippet = ({
 };
 
 export type FormatAllResponse = {
-    totalSnippets: number;
-    successfullyFormatted: number;
+    total_snippets: number;
+    successfully_formatted: number;
     failed: number;
     results: Array<{
-        snippetId: string;
-        snippetName: string;
+        snippet_id: string;
+        snippet_name: string;
         success: boolean;
         errorMessage: string | null;
     }>;
 };
 
 export type LintAllResponse = {
-    totalSnippets: number;
-    snippetsWithIssues: number;
-    snippetsWithoutIssues: number;
+    total_snippets: number;
+    snippets_with_issues: number;
+    snippets_without_issues: number;
     results: Array<{
-        snippetId: string;
-        snippetName: string;
-        issuesCount: number;
+        snippet_id: string;
+        snippet_name: string;
+        issues_count: number;
         issues: LintingIssue[];
     }>;
 };

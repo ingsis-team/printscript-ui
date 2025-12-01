@@ -44,10 +44,10 @@ export const LintingRulesList: React.FC = () => {
             setShowResultDialog(true);
             setIsLinting(false);
 
-            if (response.snippetsWithIssues === 0) {
-                createSnackbar('success', `¡Todos los ${response.totalSnippets} snippets cumplen con las reglas!`);
+            if (response.snippets_with_issues === 0) {
+                createSnackbar('success', `¡Todos los ${response.total_snippets} snippets cumplen con las reglas!`);
             } else {
-                createSnackbar('warning', `${response.snippetsWithIssues} snippets tienen problemas de linting.`);
+                createSnackbar('warning', `${response.snippets_with_issues} snippets tienen problemas de linting.`);
             }
         },
         onError: (error) => {
@@ -115,33 +115,33 @@ export const LintingRulesList: React.FC = () => {
                                 Resumen
                             </Typography>
                             <Typography variant="body1">
-                                Total de snippets: <strong>{lintResult.totalSnippets}</strong>
+                                Total de snippets: <strong>{lintResult.total_snippets}</strong>
                             </Typography>
                             <Typography variant="body1" color="success.main">
-                                Sin problemas: <strong>{lintResult.snippetsWithoutIssues}</strong>
+                                Sin problemas: <strong>{lintResult.snippets_without_issues}</strong>
                             </Typography>
-                            {lintResult.snippetsWithIssues > 0 && (
+                            {lintResult.snippets_with_issues > 0 && (
                                 <Typography variant="body1" color="warning.main">
-                                    Con problemas: <strong>{lintResult.snippetsWithIssues}</strong>
+                                    Con problemas: <strong>{lintResult.snippets_with_issues}</strong>
                                 </Typography>
                             )}
 
-                            {lintResult.snippetsWithIssues > 0 && (
+                            {lintResult.snippets_with_issues > 0 && (
                                 <Box mt={3}>
                                     <Typography variant="h6" gutterBottom>
                                         Snippets con problemas:
                                     </Typography>
                                     {lintResult.results
-                                        .filter(r => r.issuesCount > 0)
+                                        .filter(r => r.issues_count > 0)
                                         .map((result) => (
-                                            <Accordion key={result.snippetId}>
+                                            <Accordion key={result.snippet_id}>
                                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                                     <Box display="flex" justifyContent="space-between" width="100%">
                                                         <Typography>
-                                                            <strong>{result.snippetName}</strong>
+                                                            <strong>{result.snippet_name}</strong>
                                                         </Typography>
                                                         <Typography color="warning.main" mr={2}>
-                                                            {result.issuesCount} problema{result.issuesCount > 1 ? 's' : ''}
+                                                            {result.issues_count} problema{result.issues_count > 1 ? 's' : ''}
                                                         </Typography>
                                                     </Box>
                                                 </AccordionSummary>
