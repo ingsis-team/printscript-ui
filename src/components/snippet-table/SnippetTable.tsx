@@ -82,29 +82,55 @@ export const SnippetTable = (props: SnippetTableProps) => {
   const handleLoadSnippet = async (target: EventTarget & HTMLInputElement) => {
     const files = target.files
     if (!files || !files.length) {
-      createSnackbar('error',"Please select at leat one file")
+      createSnackbar('error',"Please select at least one file")
       return
     }
     const file = files[0]
+
+    console.log('Loading file:', file.name)
+    console.log('Available file types:', fileTypes)
+
     const splitName = file.name.split(".")
-    const fileType = getFileLanguage(fileTypes ?? [], splitName.at(-1))
+    const fileExtension = splitName.at(-1)
+
+    console.log('File extension:', fileExtension)
+
+    const fileType = getFileLanguage(fileTypes ?? [], fileExtension)
+
+    console.log('Matched file type:', fileType)
+
     if (!fileType) {
-      createSnackbar('error', `File type ${splitName.at(-1)} not supported`)
+      // List supported extensions for better UX
+      const supportedExtensions = fileTypes?.map(ft => ft.extension).join(', ') || 'none'
+      createSnackbar('error', `File type ".${fileExtension}" not supported. Supported types: ${supportedExtensions}`)
+      target.value = ""
       return
     }
-    file.text().then((text) => {
+
+    try {
+      const text = await file.text()
+
+      if (!text || text.trim().length === 0) {
+        createSnackbar('error', 'File is empty')
+        target.value = ""
+        return
+      }
+
+      console.log('File loaded successfully, length:', text.length)
+
       setSnippet({
-        name: splitName[0],
+        name: splitName.slice(0, -1).join('.'), // Handle files with multiple dots in name
         content: text,
         language: fileType.language,
         extension: fileType.extension
       })
-    }).catch(e => {
-      console.error(e)
-    }).finally(() => {
       setAddModalOpened(true)
+    } catch (e) {
+      console.error('Error reading file:', e)
+      createSnackbar('error', 'Failed to read file content')
+    } finally {
       target.value = ""
-    })
+    }
   }
 
   function handleClickMenu() {
@@ -252,8 +278,15 @@ export const SnippetTable = (props: SnippetTableProps) => {
           <MenuItem onClick={() => setAddModalOpened(true)} data-testid="create-snippet-menu-item">Create snippet</MenuItem>
           <MenuItem onClick={() => inputRef?.current?.click()} data-testid="load-file-menu-item">Load snippet from file</MenuItem>
         </Menu>
-        <input hidden type={"file"} ref={inputRef} multiple={false} data-testid={"upload-file-input"}
-               onChange={e => handleLoadSnippet(e?.target)}/>
+        <input
+          hidden
+          type={"file"}
+          ref={inputRef}
+          multiple={false}
+          accept={fileTypes?.map(ft => `.${ft.extension}`).join(',') + ',.prs' || '.prs,.ps'}
+          data-testid={"upload-file-input"}
+          onChange={e => handleLoadSnippet(e?.target)}
+        />
       </>
   )
 }
