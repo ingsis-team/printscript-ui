@@ -120,21 +120,21 @@ export const TabPanel = ({value, index, test: initialTest, snippetId, setTestCas
                                 </Typography>
                                 <Box mt={1}>
                                     <Typography variant="caption" display="block">
-                                        <strong>Expected Status:</strong> {testResult.expected_status}
+                                        <strong>Expected Status:</strong> {testResult.expectedStatus}
                                     </Typography>
                                     <Typography variant="caption" display="block">
                                         <strong>Expected Outputs:</strong>
                                     </Typography>
                                     <pre style={{ margin: '4px 0', backgroundColor: '#f5f5f5', padding: '8px', borderRadius: '4px', overflow: 'auto' }}>
-                                        [{(testResult.expected_outputs || []).join(', ')}]
+                                        [{(testResult.expectedOutputs || []).join(', ')}]
                                     </pre>
                                     <Typography variant="caption" display="block">
                                         <strong>Actual Outputs:</strong>
                                     </Typography>
                                     <pre style={{ margin: '4px 0', backgroundColor: '#f5f5f5', padding: '8px', borderRadius: '4px', overflow: 'auto' }}>
-                                        [{(testResult.actual_outputs || []).join(', ')}]
+                                        [{(testResult.actualOutputs || []).join(', ')}]
                                     </pre>
-                                    {testResult.execution_failed && (
+                                    {testResult.executionFailed && (
                                         <Typography variant="caption" display="block" color="error">
                                             <strong>Execution Failed</strong>
                                         </Typography>
