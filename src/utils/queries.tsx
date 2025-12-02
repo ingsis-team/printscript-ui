@@ -356,23 +356,62 @@ export const useGetFileTypes = () => {
     return useQuery<FileType[], Error>(
         ['fileTypes'],
         async () => {
-            const response = await axios.get(`${BACKEND_URL}/api/languages`, {
-                headers: getAuthHeaders(),
-            });
-            const data = Array.isArray(response.data) ? response.data : [];
-            // Map backend Language objects to the FileType used by the UI
-            return data.map((item: any) => {
-                // Backend example: { id: 'printscript', name: 'PrintScript', extension: 'ps', description: '...' }
-                const id = item.id ?? item.language ?? item.name ?? '';
-                const ext = item.extension ?? item.ext ?? 'ps';
-                return {
-                    language: String(id).toLowerCase(),
-                    extension: String(ext).toLowerCase().replace(/^[.]/, ''),
-                    name: item.name,
-                    description: item.description,
-                    id: item.id,
-                } as FileType;
-            });
+            try {
+                const response = await axios.get(`${BACKEND_URL}/api/languages`, {
+                    headers: getAuthHeaders(),
+                });
+                const data = Array.isArray(response.data) ? response.data : [];
+                // Map backend Language objects to the FileType used by the UI
+                const fileTypes = data.map((item: any) => {
+                    // Backend example: { id: 'printscript', name: 'PrintScript', extension: 'ps', description: '...' }
+                    const id = item.id ?? item.language ?? item.name ?? '';
+                    const ext = item.extension ?? item.ext ?? 'ps';
+                    return {
+                        language: String(id).toLowerCase(),
+                        extension: String(ext).toLowerCase().replace(/^[.]/, ''),
+                        name: item.name,
+                        description: item.description,
+                        id: item.id,
+                    } as FileType;
+                });
+                
+                // Ensure printscript has both 'ps' and 'prs' extensions
+                const printscriptTypes = fileTypes.filter(ft => ft.language === 'printscript');
+                const hasPrs = printscriptTypes.some(ft => ft.extension === 'prs');
+                const hasPs = printscriptTypes.some(ft => ft.extension === 'ps');
+                
+                // Add missing extensions for printscript
+                if (printscriptTypes.length > 0) {
+                    const baseType = printscriptTypes[0];
+                    if (!hasPrs) {
+                        fileTypes.push({
+                            ...baseType,
+                            extension: 'prs',
+                        });
+                    }
+                    if (!hasPs) {
+                        fileTypes.push({
+                            ...baseType,
+                            extension: 'ps',
+                        });
+                    }
+                } else {
+                    // If no printscript type from API, add both extensions
+                    fileTypes.push(
+                        { language: 'printscript', extension: 'prs', name: 'PrintScript' },
+                        { language: 'printscript', extension: 'ps', name: 'PrintScript' }
+                    );
+                }
+                
+                return fileTypes;
+            } catch (error) {
+                // Fallback to default file types if API fails
+                console.warn('Failed to fetch file types from API, using defaults', error);
+                return [
+                    { language: 'printscript', extension: 'prs', name: 'PrintScript' },
+                    { language: 'printscript', extension: 'ps', name: 'PrintScript' },
+                ];
+            }
         },
         {
             staleTime: Infinity,

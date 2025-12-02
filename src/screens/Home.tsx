@@ -74,10 +74,17 @@ const HomeScreen = () => {
   const filteredAndSortedSnippets = data?.content ? [...data.content]
     .filter(snippet => {
       // Filter by relationship
+      // snippet.author and snippet.user_id contain the Auth0 user ID (user_id from backend)
+      // We need to compare with user?.sub (Auth0 user ID) or the stored userId
+      const currentUserId = user?.sub || localStorage.getItem('userId') || '';
+      const snippetUserId = snippet.user_id || snippet.author;
+      
       if (relationshipFilter === 'author') {
-        if (snippet.author !== user?.email) return false;
+        // My Snippets: show only snippets where I am the author (user_id matches)
+        if (snippetUserId !== currentUserId) return false;
       } else if (relationshipFilter === 'shared') {
-        if (snippet.author === user?.email) return false;
+        // Shared with Me: show only snippets where I am NOT the author (user_id doesn't match)
+        if (snippetUserId === currentUserId) return false;
       }
       // relationshipFilter === 'all' shows all
 
