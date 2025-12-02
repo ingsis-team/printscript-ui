@@ -34,7 +34,6 @@ interface RulesListBaseProps<T extends Rule> {
     onSave: (rules: T[]) => Promise<void>;
     isSaving: boolean;
     ruleConfigs: Record<string, RuleConfig>;
-    successMessage: string;
     updateMessage: string;
 }
 
@@ -46,7 +45,6 @@ export function RulesListBase<T extends Rule>({
     onSave,
     isSaving,
     ruleConfigs,
-    successMessage,
     updateMessage,
 }: RulesListBaseProps<T>) {
     const [localRules, setLocalRules] = useState<T[]>([]);

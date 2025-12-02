@@ -582,16 +582,22 @@ export class RealSnippetOperations implements SnippetOperations {
             // - If expected_status is VALID: test passes if snippet executed successfully and outputs match
             // - If expected_status is INVALID: test passes if snippet failed as expected
             return {
-                id: response.data.id || '',
-                success: response.data.passed || false,
-                output: response.data.output || ''
+                passed: response.data.passed || false,
+                expectedStatus: response.data.expected_status || 'VALID',
+                expectedOutputs: response.data.expected_outputs || [],
+                actualOutputs: response.data.actual_outputs || [],
+                executionFailed: response.data.execution_failed || false,
+                message: response.data.message || ''
             };
         } catch (error: any) {
             console.error('Error executing test:', error);
             return {
-                id: '',
-                success: false,
-                output: error.message || 'Test execution failed'
+                passed: false,
+                expectedStatus: 'VALID',
+                expectedOutputs: [],
+                actualOutputs: [],
+                executionFailed: true,
+                message: error.message || 'Test execution failed'
             };
         }
     }
@@ -921,51 +927,35 @@ export class RealSnippetOperations implements SnippetOperations {
         // Return default PrintScript format rules
         return [
             {
-                id: '1',
                 name: 'enforce_spacing_around_equals',
-                isActive: true,
                 value: null,
             },
             {
-                id: '2',
                 name: 'enforce_spacing_before_colon_in_declaration',
-                isActive: true,
                 value: null,
             },
             {
-                id: '3',
                 name: 'enforce_spacing_after_colon_in_declaration',
-                isActive: true,
                 value: null,
             },
             {
-                id: '4',
                 name: 'if_brace_same_line',
-                isActive: true,
                 value: null,
             },
             {
-                id: '5',
                 name: 'println_line_breaks_before',
-                isActive: false,
                 value: 1,
             },
             {
-                id: '6',
                 name: 'println_line_breaks_after',
-                isActive: false,
                 value: 1,
             },
             {
-                id: '7',
                 name: 'assignment_line_breaks_before',
-                isActive: false,
                 value: 0,
             },
             {
-                id: '8',
                 name: 'assignment_line_breaks_after',
-                isActive: false,
                 value: 0,
             }
         ];

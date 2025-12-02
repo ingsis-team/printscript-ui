@@ -9,7 +9,7 @@ import { FileType } from '../types/FileType';
 import { RealSnippetOperations } from './mock/RealSnippetOperations';
 
 const getToken = () => localStorage.getItem('token') || '';
-const getUserId = () => localStorage.getItem('userId') || '';
+export const getUserId = () => localStorage.getItem('userId') || '';
 
 // Create a single instance of RealSnippetOperations to use across queries
 const snippetOperations = new RealSnippetOperations();

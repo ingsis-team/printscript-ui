@@ -98,7 +98,6 @@ export const FormattingRulesList: React.FC = () => {
                 onSave={handleSave}
                 isSaving={isSaving || isFormatting}
                 ruleConfigs={FORMATTING_RULE_CONFIGS}
-                successMessage="Al guardar, todos tus snippets se formatearán automáticamente con las nuevas reglas."
                 updateMessage={isFormatting ? "Formateando todos los snippets con las nuevas reglas..." : "Guardando reglas de formateo..."}
             />
 

@@ -42,89 +42,81 @@ const paginatedUsers: PaginatedUsers = {
   page_size: 10,
   users: [
     {
+      user_id: "1",
       name: "Chona",
-      id: "1",
-      username: "chona"
+      email: "chona@example.com",
+      nickname: "chona",
+      picture: ""
     },
     {
+      user_id: "2",
       name: "Fede",
-      id: "2",
-      username: "fede"
+      email: "fede@example.com",
+      nickname: "fede",
+      picture: ""
     },
     {
+      user_id: "3",
       name: "Mateo",
-      id: "3",
-      username: "mateo"
+      email: "mateo@example.com",
+      nickname: "mateo",
+      picture: ""
     },
     {
+      user_id: "4",
       name: "Tomi",
-      id: "4",
-      username: "tomi"
+      email: "tomi@example.com",
+      nickname: "tomi",
+      picture: ""
     },
     {
+      user_id: "5",
       name: "Berrets",
-      id: "5",
-      username: "berrets"
+      email: "berrets@example.com",
+      nickname: "berrets",
+      picture: ""
     }
   ]
 }
 
 const INITIAL_FORMATTING_RULES: Rule[] = [
   {
-    id: '1',
     name: "indentation",
-    isActive: true,
     value: 3
   },
   {
-    id: '2',
     name: "open-if-block-on-same-line",
-    isActive: false,
     value: false,
   },
   {
-    id: '3',
     name: "max-line-length",
-    isActive: true,
     value: 100
   },
   {
-    id: '4',
     name: "no-trailing-spaces",
-    isActive: false,
     value: null
   },
   {
-    id: '5',
     name: "no-multiple-empty-lines",
-    isActive: false,
     value: null,
   }
 ]
 
 const INITIAL_LINTING_RULES: Rule[] = [
   {
-    id: '1',
     name: "no-expressions-in-print-line",
-    isActive: true,
     value: null
   },
   {
-    id: '2',
     name: "no-unused-vars",
-    isActive: true,
     value: null
   },
   {
-    id: '3',
     name: "no-undef-vars",
-    isActive: false,
     value: null
   },
   {
-    id: '4',
     name: "no-unused-params",
-    isActive: false,
     value: null
   },
 ]
@@ -262,9 +254,12 @@ export class FakeSnippetStore {
   testSnippet(): TestCaseResult {
     const success = Math.random() > 0.5;
     return {
-      id: '',
-      success,
-      output: success ? 'Test passed' : 'Test failed'
+      passed: success,
+      expectedStatus: 'VALID',
+      expectedOutputs: [],
+      actualOutputs: success ? ['Test passed'] : ['Test failed'],
+      executionFailed: !success,
+      message: success ? 'Test passed' : 'Test failed'
     };
   }
 

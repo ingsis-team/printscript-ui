@@ -84,7 +84,6 @@ export const LintingRulesList: React.FC = () => {
                 onSave={handleSave}
                 isSaving={isSaving || isLinting}
                 ruleConfigs={LINTING_RULE_CONFIGS}
-                successMessage="Al guardar, todos tus snippets se analizarán automáticamente para verificar el cumplimiento de las reglas."
                 updateMessage={isLinting ? "Analizando todos los snippets con las nuevas reglas..." : "Guardando reglas de linting..."}
             />
 
