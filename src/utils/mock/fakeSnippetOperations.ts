@@ -297,8 +297,9 @@ export class FakeSnippetOperations implements SnippetOperations {
         }
     }
 
-    async executeSnippet(_snippetId: string, _inputs: string[]): Promise<{ outputs: string[], errors: string[] }> {
+    async executeSnippet(snippetId: string, inputs: string[]): Promise<{ outputs: string[], errors: string[] }> {
         // Mock implementation for fake operations
+        console.log('Executing snippet:', snippetId, 'with inputs:', inputs);
         return Promise.resolve({
             outputs: ['Mock output'],
             errors: [],

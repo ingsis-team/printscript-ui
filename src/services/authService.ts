@@ -6,6 +6,7 @@ export const useAuthToken = () => {
     const { getAccessTokenSilently } = useAuth0();
     const [token, setToken] = React.useState<string | null>(null);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const fetchToken = async () => {
         try {
             const fetchedToken = await getAccessTokenSilently();
@@ -18,7 +19,7 @@ export const useAuthToken = () => {
 
     React.useEffect(() => {
         fetchToken();
-    }, [getAccessTokenSilently]);
+    }, [getAccessTokenSilently, fetchToken]);
 
     return token;
 };

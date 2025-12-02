@@ -21,7 +21,7 @@ const PrivateRoute = ({ children }) => {
         if (isAuthenticated) {
             fetchToken();
         }
-    }, [isAuthenticated, getAccessTokenSilently]);
+    }, [isAuthenticated, getAccessTokenSilently, user?.email]);
 
 
     return isAuthenticated ? children : (

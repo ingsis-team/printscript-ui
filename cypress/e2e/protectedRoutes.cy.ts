@@ -1,5 +1,3 @@
-import {AUTH0_USERNAME,AUTH0_PASSWORD} from "../../src/utils/constants";
-
 describe('Protected routes test', () => {
   it('should show login button when accessing a protected route unauthenticated', () => {
     // Visit the protected route

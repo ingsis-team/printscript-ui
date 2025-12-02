@@ -9,7 +9,6 @@ import { FileType } from '../types/FileType';
 import { RealSnippetOperations } from './mock/RealSnippetOperations';
 
 const getToken = () => localStorage.getItem('token') || '';
-const getUserId = () => localStorage.getItem('userId') || '';
 
 // Create a single instance of RealSnippetOperations to use across queries
 const snippetOperations = new RealSnippetOperations();
@@ -30,7 +29,7 @@ const generateCorrelationId = () => {
 // getAuthHeaders ahora permite controlar inclusion de Content-Type y Correlation-id
 const getAuthHeaders = (opts: { contentType?: boolean; includeCorrelation?: boolean } = {}) => {
     const { contentType = true, includeCorrelation = true } = opts;
-    const headers: any = {
+    const headers: Record<string, string> = {
         'Authorization': `Bearer ${getToken()}`,
         'ngrok-skip-browser-warning': '69420'
     };
@@ -59,11 +58,11 @@ const fromBackendFormattingRule = (r: any): FormattingRule => ({
     description: r.description ?? undefined,
 });
 
-const fromBackendLintingRule = (r: any): LintingRule => {
+const fromBackendLintingRule = (r: Record<string, unknown>): LintingRule => {
     const rule: LintingRule = {
         name: String(r.name),
         value: r.value ?? null,
-        description: r.description ?? undefined,
+        description: r.description ? String(r.description) : undefined,
     };
     if (r.id) {
         rule.id = String(r.id);
@@ -194,7 +193,7 @@ export const useUpdateSnippetById = ({ onSuccess, onError }: { onSuccess: () => 
     const queryClient = useQueryClient();
     return useMutation<Snippet, Error, { id: string; updateSnippet: UpdateSnippet }>(
         async ({ id, updateSnippet }) => {
-            const requestBody: any = {};
+            const requestBody: Record<string, unknown> = {};
             if (updateSnippet.content !== undefined) requestBody.content = updateSnippet.content;
             if (updateSnippet.name !== undefined) requestBody.name = updateSnippet.name;
             if (updateSnippet.description !== undefined) requestBody.description = updateSnippet.description;
@@ -361,16 +360,16 @@ export const useGetFileTypes = () => {
             });
             const data = Array.isArray(response.data) ? response.data : [];
             // Map backend Language objects to the FileType used by the UI
-            return data.map((item: any) => {
+            return data.map((item: Record<string, unknown>) => {
                 // Backend example: { id: 'printscript', name: 'PrintScript', extension: 'ps', description: '...' }
                 const id = item.id ?? item.language ?? item.name ?? '';
                 const ext = item.extension ?? item.ext ?? 'ps';
                 return {
                     language: String(id).toLowerCase(),
                     extension: String(ext).toLowerCase().replace(/^[.]/, ''),
-                    name: item.name,
-                    description: item.description,
-                    id: item.id,
+                    name: item.name ? String(item.name) : undefined,
+                    description: item.description ? String(item.description) : undefined,
+                    id: item.id ? String(item.id) : undefined,
                 } as FileType;
             });
         },

@@ -46,7 +46,6 @@ export function RulesListBase<T extends Rule>({
     onSave,
     isSaving,
     ruleConfigs,
-    successMessage,
     updateMessage,
 }: RulesListBaseProps<T>) {
     const [localRules, setLocalRules] = useState<T[]>([]);
@@ -143,7 +142,7 @@ export function RulesListBase<T extends Rule>({
                             const derivedDescription = (rule.description && String(rule.description)) ?? config?.description ?? 'Sin descripción';
 
                             // Inferir tipo y posibles valores
-                            let derivedType: 'boolean' | 'number' | 'string' = (config?.type as any) ?? 'string';
+                            let derivedType: 'boolean' | 'number' | 'string' = (config?.type as 'boolean' | 'number' | 'string') ?? 'string';
                             let derivedPossibleValues: (boolean | number | string)[] | undefined = config?.possibleValues;
 
                             if (!derivedPossibleValues || derivedPossibleValues.length === 0) {

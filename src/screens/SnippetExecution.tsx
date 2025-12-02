@@ -42,8 +42,9 @@ export const SnippetExecution = ({snippetId}: SnippetExecutionProps) => {
       const result = await snippetOperations.executeSnippet(snippetId, inputs);
       setOutput(result.outputs);
       setErrors(result.errors);
-    } catch (error: any) {
-      setErrors([error.message || 'Execution failed']);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Execution failed';
+      setErrors([errorMessage]);
     } finally {
       setIsExecuting(false);
     }

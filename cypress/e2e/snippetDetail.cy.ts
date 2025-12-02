@@ -1,4 +1,4 @@
-import {AUTH0_PASSWORD, AUTH0_USERNAME, BACKEND_URL} from "../../src/utils/constants";
+import {BACKEND_URL} from "../../src/utils/constants";
 import {FakeSnippetStore} from "../../src/utils/mock/fakeSnippetStore";
 
 describe('Add snippet tests', () => {

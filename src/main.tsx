@@ -1,6 +1,6 @@
 // Polyfill for process object - must be before any imports
 if (typeof process === 'undefined') {
-  (window as any).process = { env: {} };
+  (window as Window & { process?: { env: Record<string, unknown> } }).process = { env: {} };
 }
 
 import React from 'react';

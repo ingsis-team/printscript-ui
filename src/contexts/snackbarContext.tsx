@@ -11,8 +11,7 @@ export type SnackbarContextType = {
   createSnackbar: (severity: AlertColor, text: string) => void
 }
 
-
-// @ts-expect-error
+// @ts-expect-error - Context is initialized as null but will be provided by SnackbarProvider
 export const SnackbarContext = createContext<SnackbarContextType>(null)
 
 export const useSnackbarContext = (): SnackbarContextType => useContext(SnackbarContext)

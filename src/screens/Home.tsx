@@ -104,11 +104,12 @@ const HomeScreen = () => {
         case 'language':
           comparison = a.language.localeCompare(b.language);
           break;
-        case 'validity':
+        case 'validity': {
           const aValid = a.compliance === 'compliant' ? 1 : 0;
           const bValid = b.compliance === 'compliant' ? 1 : 0;
           comparison = aValid - bValid;
           break;
+        }
         case 'author':
           comparison = a.author.localeCompare(b.author);
           break;
