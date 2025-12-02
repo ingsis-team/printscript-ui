@@ -1,9 +1,7 @@
 // Base Rule interface (flexible to support backend-driven rule names)
 export interface Rule {
-  id: string;
   // allow any rule name returned by backend
   name: string;
-  isActive: boolean;
   // value can be boolean/number/string or null if backend doesn't provide it
   value: boolean | number | string | null;
   // optional human-readable description from backend
@@ -18,6 +16,8 @@ export interface FormattingRule extends Rule {
 
 export interface LintingRule extends Rule {
   // marker interface for linting-related rules
+  // linting rules may have an id field
+  id?: string;
 }
 
 // Linting Issue

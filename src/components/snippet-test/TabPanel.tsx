@@ -1,8 +1,8 @@
 import {useState} from "react";
 import {TestCase} from "../../types/TestCase.ts";
-import {Autocomplete, Box, Button, Chip, TextField, Typography, FormControl, InputLabel, Select, MenuItem} from "@mui/material";
+import {Autocomplete, Box, Button, Chip, TextField, Typography, FormControl, InputLabel, Select, MenuItem, Alert} from "@mui/material";
 import {BugReport, Delete, Save} from "@mui/icons-material";
-import {useTestSnippet} from "../../utils/queries.tsx";
+import {useRunTestCase} from "../../utils/queries.tsx";
 
 type TabPanelProps = {
     index: number;
@@ -16,8 +16,15 @@ type TabPanelProps = {
 export const TabPanel = ({value, index, test: initialTest, snippetId, setTestCase, removeTestCase}: TabPanelProps) => {
     const [testData, setTestData] = useState<Partial<TestCase> | undefined>(initialTest);
 
-    const {mutateAsync: testSnippet, data} = useTestSnippet();
-    
+    const {mutateAsync: runTest, data: testResult, isLoading: isRunningTest} = useRunTestCase({
+        onSuccess: (result) => {
+            console.log('Test result:', result);
+        },
+        onError: (error) => {
+            console.error('Test error:', error);
+        }
+    });
+
     const handleSaveTest = async () => {
         if (!testData?.name) return;
         const savedTest = await setTestCase({...testData, snippetId});
@@ -25,6 +32,10 @@ export const TabPanel = ({value, index, test: initialTest, snippetId, setTestCas
         setTestData(savedTest);
     };
 
+    const handleRunTest = async () => {
+        if (!testData?.id) return;
+        await runTest({ snippetId, testCaseId: testData.id });
+    };
 
     return (
         <div
@@ -79,7 +90,7 @@ export const TabPanel = ({value, index, test: initialTest, snippetId, setTestCas
                         />
                     </Box>
                     <Box display="flex" flexDirection="column" gap={1}>
-                        <Typography fontWeight="bold">Output</Typography>
+                        <Typography fontWeight="bold">Expected Output</Typography>
                         <Autocomplete
                             multiple
                             size="small"
@@ -100,6 +111,39 @@ export const TabPanel = ({value, index, test: initialTest, snippetId, setTestCas
                             options={[]}
                         />
                     </Box>
+
+                    {testResult && (
+                        <Box display="flex" flexDirection="column" gap={1}>
+                            <Alert severity={testResult.passed ? "success" : "error"}>
+                                <Typography variant="body2" fontWeight="bold">
+                                    {testResult.message}
+                                </Typography>
+                                <Box mt={1}>
+                                    <Typography variant="caption" display="block">
+                                        <strong>Expected Status:</strong> {testResult.expectedStatus}
+                                    </Typography>
+                                    <Typography variant="caption" display="block">
+                                        <strong>Expected Outputs:</strong>
+                                    </Typography>
+                                    <pre style={{ margin: '4px 0', backgroundColor: '#f5f5f5', padding: '8px', borderRadius: '4px', overflow: 'auto' }}>
+                                        [{(testResult.expectedOutputs || []).join(', ')}]
+                                    </pre>
+                                    <Typography variant="caption" display="block">
+                                        <strong>Actual Outputs:</strong>
+                                    </Typography>
+                                    <pre style={{ margin: '4px 0', backgroundColor: '#f5f5f5', padding: '8px', borderRadius: '4px', overflow: 'auto' }}>
+                                        [{(testResult.actualOutputs || []).join(', ')}]
+                                    </pre>
+                                    {testResult.executionFailed && (
+                                        <Typography variant="caption" display="block" color="error">
+                                            <strong>Execution Failed</strong>
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </Alert>
+                        </Box>
+                    )}
+
                     <Box display="flex" flexDirection="row" gap={1}>
                         {
                             (testData?.id && removeTestCase) && (
@@ -112,18 +156,13 @@ export const TabPanel = ({value, index, test: initialTest, snippetId, setTestCas
                             Save
                         </Button>
                         <Button 
-                            onClick={() => {
-                                if (!testData?.id) return;
-                                testSnippet({ snippetId, testCase: testData });
-                            }} 
-                            variant={"contained"} 
+                            onClick={handleRunTest}
+                            variant={"contained"}
                             startIcon={<BugReport/>}
-                            disabled={!testData?.id}
+                            disabled={!testData?.id || isRunningTest}
                             disableElevation>
-                            Test
+                            {isRunningTest ? 'Running...' : 'Run'}
                         </Button>
-                        {data && (data.success ? <Chip label="Pass" color="success"/> :
-                            <Chip label="Fail" color="error"/>)}
                     </Box>
                 </Box>
             )}

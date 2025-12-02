@@ -1,14 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import axios from 'axios';
 import { BACKEND_URL, PRINTSCRIPT_SERVICE_URL } from './constants';
-import { FormattingRule, LintingRule, FormattingResponse, LintingResponse } from '../types/Rule';
+import {FormattingRule, LintingRule, FormattingResponse, LintingResponse, LintingIssue} from '../types/Rule';
 import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from './snippet';
 import { PaginatedUsers } from './users';
 import { TestCase } from '../types/TestCase';
 import { FileType } from '../types/FileType';
+import { RealSnippetOperations } from './mock/RealSnippetOperations';
 
 const getToken = () => localStorage.getItem('token') || '';
 const getUserId = () => localStorage.getItem('userId') || '';
+
+// Create a single instance of RealSnippetOperations to use across queries
+const snippetOperations = new RealSnippetOperations();
 
 // Helper: generar correlation id (usa crypto.randomUUID cuando está disponible)
 const generateCorrelationId = () => {
@@ -38,21 +42,34 @@ const getAuthHeaders = (opts: { contentType?: boolean; includeCorrelation?: bool
 const CODE_ANALYSIS_URL = `${PRINTSCRIPT_SERVICE_URL}`;
 const SNIPPET_SERVICE_URL = `${BACKEND_URL}/api/snippets`;
 
-// Helpers para mapear entre frontend (camelCase) y backend (snake_case for is_active)
-const toBackendRule = (r: FormattingRule | LintingRule) => ({
-    id: r.id,
+// Helpers para mapear entre frontend y backend
+const toBackendFormattingRule = (r: FormattingRule) => ({
     name: r.name,
-    is_active: r.isActive,
     value: r.value,
 });
 
-const fromBackendRule = (r: any): FormattingRule | LintingRule => ({
-    id: String(r.id),
+const toBackendLintingRule = (r: LintingRule) => ({
+    name: r.name,
+    value: r.value,
+});
+
+const fromBackendFormattingRule = (r: any): FormattingRule => ({
     name: String(r.name),
-    isActive: r.is_active ?? r.isActive ?? false,
     value: r.value ?? null,
     description: r.description ?? undefined,
 });
+
+const fromBackendLintingRule = (r: any): LintingRule => {
+    const rule: LintingRule = {
+        name: String(r.name),
+        value: r.value ?? null,
+        description: r.description ?? undefined,
+    };
+    if (r.id) {
+        rule.id = String(r.id);
+    }
+    return rule;
+};
 
 // ============= SNIPPET QUERIES =============
 
@@ -231,11 +248,8 @@ export const useGetUsers = (page: number = 0, pageSize: number = 10, name?: stri
     return useQuery<PaginatedUsers, Error>(
         ['users', name, page, pageSize],
         async () => {
-            const response = await axios.get(`${SNIPPET_SERVICE_URL}/users`, {
-                headers: getAuthHeaders(),
-                params: { page, pageSize, name },
-            });
-            return response.data;
+            // Use snippetOperations.getUserFriends instead of direct axios call
+            return await snippetOperations.getUserFriends(page, pageSize, name);
         }
     );
 };
@@ -245,8 +259,11 @@ export const useShareSnippet = ({ onSuccess, onError }: { onSuccess?: () => void
     return useMutation<Snippet, Error, { snippetId: string; userId: string }>(
         async ({ snippetId, userId }) => {
             const response = await axios.post(
-                `${SNIPPET_SERVICE_URL}/${snippetId}/share`,
-                { userId },
+                `${SNIPPET_SERVICE_URL}/share`,
+                {
+                    snippet_id: snippetId,
+                    target_user_id: userId
+                },
                 { headers: getAuthHeaders() }
             );
             return response.data;
@@ -269,7 +286,17 @@ export const useGetTestCases = (snippetId: string) => {
             const response = await axios.get(`${SNIPPET_SERVICE_URL}/${snippetId}/tests`, {
                 headers: getAuthHeaders(),
             });
-            return response.data;
+
+            // Map backend response to frontend format
+            const backendTests = Array.isArray(response.data) ? response.data : [];
+            return backendTests.map((test: any) => ({
+                id: test.id,
+                name: test.name,
+                input: test.inputs || [],
+                output: test.expected_outputs || [],
+                snippetId: test.snippet_id || snippetId,
+                expected_status: test.expected_status || 'VALID'
+            }));
         }
     );
 };
@@ -280,10 +307,25 @@ export const usePostTestCase = (snippetId: string) => {
         async (tc) => {
             const response = await axios.post(
                 `${SNIPPET_SERVICE_URL}/${snippetId}/tests`,
-                { ...tc, snippetId },
+                {
+                    name: tc.name,
+                    inputs: Array.isArray(tc.input) ? tc.input : [],
+                    expected_outputs: Array.isArray(tc.output) ? tc.output : [],
+                    expected_status: tc.expected_status || 'VALID'
+                },
                 { headers: getAuthHeaders() }
             );
-            return response.data;
+
+            // Map backend response to frontend format
+            const backendData = response.data;
+            return {
+                id: backendData.id,
+                name: backendData.name,
+                input: backendData.inputs || [],
+                output: backendData.expected_outputs || [],
+                snippetId: backendData.snippet_id || snippetId,
+                expected_status: backendData.expected_status || 'VALID'
+            };
         },
         {
             onSuccess: () => {
@@ -339,16 +381,36 @@ export const useGetFileTypes = () => {
 };
 
 export type TestCaseResult = {
-    id: string;
-    success: boolean;
-    output: string;
+    passed: boolean;
+    expectedStatus: string;
+    expectedOutputs: string[];
+    actualOutputs: string[];
+    executionFailed: boolean;
+    message: string;
+};
+
+export type RunAllTestsResult = {
+    test_id: string;
+    test_name: string;
+    passed: boolean;
+    actual_outputs: string[];
+    expected_outputs: string[];
+    errors: string[];
+};
+
+export type RunAllTestsResponse = {
+    snippet_id: string;
+    total_tests: number;
+    passed_tests: number;
+    failed_tests: number;
+    results: RunAllTestsResult[];
 };
 
 export const useRunTestCase = ({ onSuccess, onError }: { onSuccess?: (result: TestCaseResult) => void, onError?: (error: Error) => void } = {}) => {
     return useMutation<TestCaseResult, Error, { snippetId: string; testCaseId: string }>(
         async ({ snippetId, testCaseId }) => {
             const response = await axios.post(
-                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testCaseId}/run`,
+                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/${testCaseId}/execute`,
                 {},
                 { headers: getAuthHeaders() }
             );
@@ -361,12 +423,12 @@ export const useRunTestCase = ({ onSuccess, onError }: { onSuccess?: (result: Te
     );
 };
 
-export const useTestSnippet = ({ onSuccess, onError }: { onSuccess?: (result: TestCaseResult) => void, onError?: (error: Error) => void } = {}) => {
-    return useMutation<TestCaseResult, Error, { snippetId: string; testCase: Partial<TestCase> }>(
-        async ({ snippetId, testCase }) => {
+export const useRunAllTests = ({ onSuccess, onError }: { onSuccess?: (result: RunAllTestsResponse) => void, onError?: (error: Error) => void } = {}) => {
+    return useMutation<RunAllTestsResponse, Error, { snippetId: string }>(
+        async ({ snippetId }) => {
             const response = await axios.post(
-                `${SNIPPET_SERVICE_URL}/${snippetId}/test`,
-                testCase,
+                `${SNIPPET_SERVICE_URL}/${snippetId}/tests/run-all`,
+                {},
                 { headers: getAuthHeaders() }
             );
             return response.data;
@@ -384,19 +446,14 @@ export const useGetFormattingRules = () => {
     return useQuery<FormattingRule[], Error>(
         ['formattingRules'],
         async () => {
-            const userId = getUserId();
-            if (!userId) {
-                throw new Error('User ID not found');
-            }
-            const encodedUserId = encodeURIComponent(userId);
-            const response = await axios.get(`${CODE_ANALYSIS_URL}/rules/format/${encodedUserId}`, {
-                headers: getAuthHeaders({ contentType: false }), // GET -> no content-type, but include correlation
+            const response = await axios.get(`${BACKEND_URL}/rules/format`, {
+                headers: getAuthHeaders({ contentType: false }),
             });
             const data = Array.isArray(response.data) ? response.data : [];
-            return data.map(fromBackendRule) as FormattingRule[];
+            return data.map(fromBackendFormattingRule) as FormattingRule[];
         },
         {
-            enabled: !!getToken() && !!getUserId(),
+            enabled: !!getToken(),
             retry: 1,
         }
     );
@@ -413,23 +470,16 @@ export const useSaveFormattingRules = ({
 
     return useMutation<FormattingRule[], Error, { rules: FormattingRule[] }>(
         async ({ rules }) => {
-            const userId = getUserId();
-            if (!userId) {
-                throw new Error('User ID not found');
-            }
-            const encodedUserId = encodeURIComponent(userId);
-            // Validar mínima forma: cada rule debe tener id y name
-            const toSend = (rules || []).map(toBackendRule);
+            const toSend = (rules || []).map(toBackendFormattingRule);
 
-            // El API espera una lista JSON directa y método POST (/rules/format/{userId})
             const response = await axios.post(
-                `${CODE_ANALYSIS_URL}/rules/format/${encodedUserId}`,
+                `${BACKEND_URL}/rules/format`,
                 toSend,
                 { headers: getAuthHeaders() }
             );
 
             const data = Array.isArray(response.data) ? response.data : [];
-            return data.map(fromBackendRule) as FormattingRule[];
+            return data.map(fromBackendFormattingRule) as FormattingRule[];
         },
         {
             onSuccess: () => {
@@ -472,19 +522,14 @@ export const useGetLintingRules = () => {
     return useQuery<LintingRule[], Error>(
         ['lintingRules'],
         async () => {
-            const userId = getUserId();
-            if (!userId) {
-                throw new Error('User ID not found');
-            }
-            const encodedUserId = encodeURIComponent(userId);
-            const response = await axios.get(`${CODE_ANALYSIS_URL}/rules/lint/${encodedUserId}`, {
+            const response = await axios.get(`${BACKEND_URL}/rules/lint`, {
                 headers: getAuthHeaders({ contentType: false }),
             });
             const data = Array.isArray(response.data) ? response.data : [];
-            return data.map(fromBackendRule) as LintingRule[];
+            return data.map(fromBackendLintingRule) as LintingRule[];
         },
         {
-            enabled: !!getToken() && !!getUserId(),
+            enabled: !!getToken(),
             retry: 1,
             onError: (error: any) => {
                 console.error('Error fetching linting rules:', error);
@@ -504,19 +549,14 @@ export const useSaveLintingRules = ({
 
     return useMutation<LintingRule[], Error, { rules: LintingRule[] }>(
         async ({ rules }) => {
-            const userId = getUserId();
-            if (!userId) {
-                throw new Error('User ID not found');
-            }
-            const encodedUserId = encodeURIComponent(userId);
-            const toSend = (rules || []).map(toBackendRule);
+            const toSend = (rules || []).map(toBackendLintingRule);
             const response = await axios.post(
-                `${CODE_ANALYSIS_URL}/rules/lint/${encodedUserId}`,
+                `${BACKEND_URL}/rules/lint`,
                 toSend,
                 { headers: getAuthHeaders() }
             );
             const data = Array.isArray(response.data) ? response.data : [];
-            return data.map(fromBackendRule) as LintingRule[];
+            return data.map(fromBackendLintingRule) as LintingRule[];
         },
         {
             onSuccess: () => {
@@ -547,6 +587,86 @@ export const useLintSnippet = ({
         },
         {
             onSuccess: (data) => {
+                onSuccess?.(data);
+            },
+            onError,
+        }
+    );
+};
+
+export type FormatAllResponse = {
+    total_snippets: number;
+    successfully_formatted: number;
+    failed: number;
+    results: Array<{
+        snippet_id: string;
+        snippet_name: string;
+        success: boolean;
+        errorMessage: string | null;
+    }>;
+};
+
+export type LintAllResponse = {
+    total_snippets: number;
+    snippets_with_issues: number;
+    snippets_without_issues: number;
+    results: Array<{
+        snippet_id: string;
+        snippet_name: string;
+        issues_count: number;
+        issues: LintingIssue[];
+    }>;
+};
+
+export const useFormatAllSnippets = ({
+    onSuccess,
+    onError
+}: {
+    onSuccess?: (response: FormatAllResponse) => void;
+    onError?: (error: Error) => void;
+} = {}) => {
+    const queryClient = useQueryClient();
+
+    return useMutation<FormatAllResponse, Error, void>(
+        async () => {
+            const response = await axios.post(
+                `${BACKEND_URL}/format/all`,
+                {},
+                { headers: getAuthHeaders() }
+            );
+            return response.data;
+        },
+        {
+            onSuccess: (data) => {
+                queryClient.invalidateQueries(['listSnippets']);
+                onSuccess?.(data);
+            },
+            onError,
+        }
+    );
+};
+
+export const useLintAllSnippets = ({
+    onSuccess,
+    onError
+}: {
+    onSuccess?: (response: LintAllResponse) => void;
+    onError?: (error: Error) => void;
+} = {}) => {
+    const queryClient = useQueryClient();
+
+    return useMutation<LintAllResponse, Error, void>(
+        async () => {
+            const response = await axios.post(
+                `${BACKEND_URL}/lint/all`,
+                {},
+                { headers: getAuthHeaders() }
+            );
+            return response.data;
+        },
+        {
+            onSuccess: (data) => {
+                queryClient.invalidateQueries(['listSnippets']);
                 onSuccess?.(data);
             },
             onError,

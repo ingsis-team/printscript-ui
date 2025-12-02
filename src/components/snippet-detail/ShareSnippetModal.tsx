@@ -1,6 +1,5 @@
 import {Autocomplete, Box, Button, Divider, TextField, Typography} from "@mui/material";
 import {ModalWrapper} from "../common/ModalWrapper.tsx";
-import {useGetUsers} from "../../utils/queries.tsx";
 import {useEffect, useState} from "react";
 import {User} from "../../utils/users.ts";
 
@@ -10,22 +9,55 @@ type ShareSnippetModalProps = {
   onShare: (userId: string) => void
   loading: boolean
 }
+
 export const ShareSnippetModal = (props: ShareSnippetModalProps) => {
   const {open, onClose, onShare, loading} = props
   const [name, setName] = useState("")
-  const [debouncedName, setDebouncedName] = useState("")
-  const {data, isLoading} = useGetUsers(0, 20, debouncedName) // Aumentar pageSize para mostrar más usuarios
   const [selectedUser, setSelectedUser] = useState<User | undefined>()
+  const [allUsers, setAllUsers] = useState<User[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
 
+  // Fetch users when modal opens
   useEffect(() => {
-    const getData = setTimeout(() => {
-      setDebouncedName(name)
-    }, 500) // Reducir timeout para mejor UX
-    return () => clearTimeout(getData)
-  }, [name])
+    if (open && allUsers.length === 0) {
+      const fetchUsers = async () => {
+        setIsLoadingUsers(true)
+        try {
+          const { RealSnippetOperations } = await import('../../utils/mock/RealSnippetOperations')
+          const snippetOperations = new RealSnippetOperations()
+          const result = await snippetOperations.getUserFriends(0, 100) // Fetch all users (high page size)
+          setAllUsers(result.users)
+          setFilteredUsers(result.users)
+        } catch (error) {
+          console.error('Error fetching users:', error)
+        } finally {
+          setIsLoadingUsers(false)
+        }
+      }
+      fetchUsers()
+    }
+  }, [open, allUsers.length])
+
+  // Filter users based on search input
+  useEffect(() => {
+    if (name.trim() === '') {
+      setFilteredUsers(allUsers)
+    } else {
+      const searchLower = name.toLowerCase()
+      const filtered = allUsers.filter(user =>
+        user.email.toLowerCase().includes(searchLower) ||
+        user.nickname.toLowerCase().includes(searchLower) ||
+        user.name.toLowerCase().includes(searchLower)
+      )
+      setFilteredUsers(filtered)
+    }
+  }, [name, allUsers])
 
   function handleSelectUser(newValue: User | null) {
-    newValue && setSelectedUser(newValue)
+    if (newValue) {
+      setSelectedUser(newValue)
+    }
   }
 
   return (
@@ -35,31 +67,34 @@ export const ShareSnippetModal = (props: ShareSnippetModalProps) => {
         <Box mt={2}>
           <Autocomplete
               renderInput={(params) => <TextField {...params} label="Search by email or nickname"/>}
-              options={data?.users ?? []}
-              isOptionEqualToValue={(option, value) =>
-                  option.id === value.id
-              }
-              getOptionLabel={(option) => `${option.email || option.name} (${option.nickname || option.username})`}
-              renderOption={(props, option) => (
-                  <Box component="li" {...props} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', py: 1 }}>
+              options={filteredUsers}
+              getOptionKey={(option) => option.user_id}
+              isOptionEqualToValue={(option, value) => option.user_id === value.user_id}
+              getOptionLabel={(option) => `${option.email} (${option.nickname})`}
+              renderOption={(props, option) => {
+                return (
+                  <Box component="li" {...props} key={option.user_id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', py: 1 }}>
                     <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                      {option.email || option.name}
+                      {option.email}
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      @{option.nickname || option.username}
+                      @{option.nickname}
                     </Typography>
                   </Box>
-              )}
-              loading={isLoading}
+                )
+              }}
+              loading={isLoadingUsers}
               value={selectedUser}
-              onInputChange={(_: unknown, newValue: string | null) => newValue && setName(newValue)}
+              onInputChange={(_: unknown, newValue: string) => setName(newValue)}
               onChange={(_: unknown, newValue: User | null) => handleSelectUser(newValue)}
+              clearOnBlur={false}
+              blurOnSelect={false}
           />
           <Box mt={4} display={"flex"} width={"100%"} justifyContent={"flex-end"}>
             <Button onClick={onClose} variant={"outlined"}>Cancel</Button>
             <Button
               disabled={!selectedUser || loading}
-              onClick={() => selectedUser && onShare(selectedUser?.user_id || selectedUser?.id)}
+              onClick={() => selectedUser && onShare(selectedUser.user_id)}
               sx={{marginLeft: 2}}
               variant={"contained"}
             >

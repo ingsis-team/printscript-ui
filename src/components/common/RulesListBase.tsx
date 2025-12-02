@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
     Box,
     Button,
-    Checkbox,
     CircularProgress,
     FormControl,
     MenuItem,
@@ -60,19 +59,10 @@ export function RulesListBase<T extends Rule>({
         }
     }, [rules]);
 
-    const handleToggleActive = (ruleId: string) => {
+    const handleValueChange = (ruleName: string, newValue: boolean | number | string) => {
         setLocalRules((prevRules) =>
             prevRules.map((rule) =>
-                rule.id === ruleId ? { ...rule, isActive: !rule.isActive } as T : rule
-            )
-        );
-        setHasChanges(true);
-    };
-
-    const handleValueChange = (ruleId: string, newValue: boolean | number | string) => {
-        setLocalRules((prevRules) =>
-            prevRules.map((rule) =>
-                rule.id === ruleId ? { ...rule, value: newValue } as T : rule
+                rule.name === ruleName ? { ...rule, value: newValue } as T : rule
             )
         );
         setHasChanges(true);
@@ -140,14 +130,13 @@ export function RulesListBase<T extends Rule>({
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell>Habilitada</TableCell>
                             <TableCell>Regla</TableCell>
                             <TableCell>Descripción</TableCell>
                             <TableCell>Valor</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {localRules.map((rule) => {
+                        {localRules.map((rule, index) => {
                             const config = ruleConfigs[rule.name];
 
                             // Preferir descripción que venga del backend; si no, usar la del config; por defecto 'Sin descripción'
@@ -179,14 +168,7 @@ export function RulesListBase<T extends Rule>({
                             const possibleValuesToRender = derivedPossibleValues ?? [String(rule.value ?? '')];
 
                             return (
-                                <TableRow key={rule.id}>
-                                    <TableCell>
-                                        <Checkbox
-                                            checked={rule.isActive}
-                                            onChange={() => handleToggleActive(rule.id)}
-                                            color="primary"
-                                        />
-                                    </TableCell>
+                                <TableRow key={rule.name + '-' + index}>
                                     <TableCell>
                                         <Typography variant="body1" fontWeight="bold">
                                             {rule.name}
@@ -200,13 +182,13 @@ export function RulesListBase<T extends Rule>({
                                     <TableCell>
                                         {derivedType === 'number' && possibleValuesToRender.length > 1 ? (
                                             // Numérico con múltiples opciones -> Select (ej. 1,2,3)
-                                            <FormControl size="small" disabled={!rule.isActive}>
+                                            <FormControl size="small">
                                                 <Select
                                                     value={String(rule.value ?? possibleValuesToRender[0])}
                                                     onChange={(e) => {
                                                         const val = e.target.value;
                                                         const parsedValue = Number(val);
-                                                        handleValueChange(rule.id, Number.isNaN(parsedValue) ? 0 : parsedValue);
+                                                        handleValueChange(rule.name, Number.isNaN(parsedValue) ? 0 : parsedValue);
                                                     }}
                                                 >
                                                     {possibleValuesToRender.map((val) => (
@@ -225,12 +207,11 @@ export function RulesListBase<T extends Rule>({
                                                 onChange={(e) => {
                                                     const val = e.target.value;
                                                     const parsedValue = Number(val);
-                                                    handleValueChange(rule.id, Number.isNaN(parsedValue) ? 0 : parsedValue);
+                                                    handleValueChange(rule.name, Number.isNaN(parsedValue) ? 0 : parsedValue);
                                                 }}
-                                                disabled={!rule.isActive}
                                             />
                                         ) : (
-                                            <FormControl size="small" disabled={!rule.isActive}>
+                                            <FormControl size="small">
                                                 <Select
                                                     value={String(rule.value ?? possibleValuesToRender[0])}
                                                     onChange={(e) => {
@@ -242,7 +223,7 @@ export function RulesListBase<T extends Rule>({
                                                         }
                                                         // else it's a string, keep as is
 
-                                                        handleValueChange(rule.id, parsedValue);
+                                                        handleValueChange(rule.name, parsedValue);
                                                     }}
                                                 >
                                                     {possibleValuesToRender.map((val) => (
@@ -260,12 +241,6 @@ export function RulesListBase<T extends Rule>({
                     </TableBody>
                 </Table>
             </TableContainer>
-
-            {hasChanges && !isUpdating && (
-                <Alert severity="warning" sx={{ mt: 2 }}>
-                    Tienes cambios sin guardar. {successMessage}
-                </Alert>
-            )}
         </Box>
     );
 }

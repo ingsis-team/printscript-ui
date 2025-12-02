@@ -197,29 +197,18 @@ export class RealSnippetOperations implements SnippetOperations {
 
             console.log('Users response:', response.data);
 
-            // Backend returns List<Auth0UserDTO>
+            // Backend returns array of users directly with the correct structure
             const backendUsers = Array.isArray(response.data) ? response.data : [];
-            
+
             // Get current user ID to filter out from the list
             const currentUserId = getUserId();
 
-            // Map backend users to frontend format and filter out current user
-            const users = backendUsers
-                .filter((u: any) => u.user_id !== currentUserId) // Exclude current user
-                .map((u: any) => ({
-                    id: u.user_id,
-                    user_id: u.user_id,
-                    name: u.name || u.email,
-                    username: u.nickname || u.email,
-                    email: u.email,
-                    nickname: u.nickname,
-                    picture: u.picture,
-                }));
+            // Filter out current user
+            let filteredUsers = backendUsers.filter((u: any) => u.user_id !== currentUserId);
 
-            // Apply name filter if provided (search in email and nickname)
-            let filteredUsers = users;
+            // Apply name filter if provided (search in email, nickname, and name)
             if (name && name.trim()) {
-                filteredUsers = users.filter(user =>
+                filteredUsers = filteredUsers.filter((user: any) =>
                     user.email?.toLowerCase().includes(name.toLowerCase()) ||
                     user.nickname?.toLowerCase().includes(name.toLowerCase()) ||
                     user.name?.toLowerCase().includes(name.toLowerCase())
@@ -923,9 +912,7 @@ export class RealSnippetOperations implements SnippetOperations {
         // Map frontend Rule type to backend format for ChangeRulesDTO
         // Backend Rule DTO requires: { id, name, isActive, value }
         return frontendRules.map(rule => ({
-            id: rule.id,
             name: rule.name,
-            isActive: rule.isActive,
             value: rule.value ?? null,
         }));
     }
@@ -988,9 +975,7 @@ export class RealSnippetOperations implements SnippetOperations {
         // Return default linting rules
         return [
             {
-                id: '1',
                 name: 'Default Lint Rule',
-                isActive: true,
                 value: null,
             },
         ];
