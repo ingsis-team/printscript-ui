@@ -82,10 +82,41 @@ If you get 401 loop when getting token:
 3. Push to the Branch (git push origin feature/AmazingFeature)
 4. Open a Pull Request
 
+## Features
+
+- **Snippet Management**: Create, edit, and delete code snippets
+- **Code Editor**: Syntax-highlighted code editor for PrintScript
+- **Syntax Validation**: Real-time syntax validation
+- **Code Formatting**: Format code with customizable rules
+- **Linting**: Configure and apply linting rules (camelCase, snake_case, etc.)
+- **Testing**: Create and run tests for snippets
+- **Permission Management**: Share snippets with other users
+- **Auth0 Integration**: Secure authentication and authorization
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file in the root directory:
+```
+VITE_AUTH0_DOMAIN=<your-auth0-domain>
+VITE_AUTH0_CLIENT_ID=<your-auth0-client-id>
+VITE_BACKEND_URL=http://localhost:8080
+```
+
+## Docker
+
+The project includes a Dockerfile for containerization. Build and run with:
+```bash
+docker build -t printscript-ui .
+docker run -p 3000:80 printscript-ui
+```
+
 ## Tasks
 
-- [ ] Integrate Auth0 UI and private routes
-- [ ] Integrate your endpoints to the UI (Create custom "SnippetOperations")
+- [x] Integrate Auth0 UI and private routes
+- [x] Integrate endpoints to the UI
+- [x] Code formatting and linting
 - [ ] Dockerize
 - [ ] CI/CD
 - [ ] Sockets*
